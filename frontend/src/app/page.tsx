@@ -6,6 +6,7 @@ import HealthCheck from "@/components/HealthCheck";
 import StoryInput from "@/components/StoryInput";
 import ScriptViewer from "@/components/ScriptViewer";
 import CharacterViewer from "@/components/CharacterViewer";
+import MangaPageViewer from "@/components/MangaPageViewer";
 
 interface Panel {
   id: number;
@@ -34,11 +35,14 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [script, setScript] = useState<ScriptResponse | null>(null);
   const [characterSheet, setCharacterSheet] = useState<CharacterSheetResponse | null>(null);
+  const [panelImages, setPanelImages] = useState<Record<number, string>>({});
+  const [isGeneratingImage, setIsGeneratingImage] = useState<Record<number, boolean>>({});
 
   const handleGenerate = async (prompt: string) => {
     setIsLoading(true);
     setScript(null);
     setCharacterSheet(null);
+    setPanelImages({});
     
     try {
       // Generate Script
@@ -51,7 +55,7 @@ export default function Home() {
       const scriptData = await scriptRes.json();
       setScript(scriptData);
 
-      // Generate Characters (Parallel or sequential, sequential for now to show progress)
+      // Generate Characters
       const charRes = await fetch("http://127.0.0.1:8000/generate/characters", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -66,6 +70,36 @@ export default function Home() {
       alert("Something went wrong. Please check if the backend is running.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGenerateImage = async (panelId: number) => {
+    if (!script) return;
+    const panel = script.panels.find(p => p.id === panelId);
+    if (!panel) return;
+
+    setIsGeneratingImage(prev => ({ ...prev, [panelId]: true }));
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/generate/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          panel_id: panelId,
+          description: panel.description,
+          characters: panel.characters,
+          style: "preview"
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to generate image");
+      const data = await response.json();
+      setPanelImages(prev => ({ ...prev, [panelId]: data.image_url }));
+    } catch (error) {
+      console.error(error);
+      alert("Failed to generate image");
+    } finally {
+      setIsGeneratingImage(prev => ({ ...prev, [panelId]: false }));
     }
   };
 
@@ -88,7 +122,18 @@ export default function Home() {
       <StoryInput onSubmit={handleGenerate} isLoading={isLoading} />
 
       {characterSheet && <CharacterViewer characterSheet={characterSheet} />}
-      {script && <ScriptViewer script={script} />}
+      
+      {script && (
+        <>
+          <ScriptViewer script={script} />
+          <MangaPageViewer 
+            panels={script.panels} 
+            images={panelImages} 
+            onGenerateImage={handleGenerateImage}
+            isGenerating={isGeneratingImage}
+          />
+        </>
+      )}
 
       {!script && !isLoading && (
         <div className="mt-24 grid text-center lg:max-w-5xl lg:w-full lg:grid-cols-2 gap-8">
