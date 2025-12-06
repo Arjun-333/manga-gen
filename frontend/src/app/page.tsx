@@ -54,7 +54,7 @@ export default function Home() {
     
     try {
       // Generate Script
-      const scriptRes = await fetch("http://127.0.0.1:8000/generate/script", {
+      const scriptRes = await fetch("/api/generate/script", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt }),
@@ -64,7 +64,7 @@ export default function Home() {
       setScript(scriptData);
 
       // Generate Characters
-      const charRes = await fetch("http://127.0.0.1:8000/generate/characters", {
+      const charRes = await fetch("/api/generate/characters", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt }),
@@ -89,7 +89,7 @@ export default function Home() {
     setIsGeneratingImage(prev => ({ ...prev, [panelId]: true }));
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/generate/image", {
+      const response = await fetch("/api/generate/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

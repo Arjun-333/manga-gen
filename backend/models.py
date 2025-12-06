@@ -24,3 +24,14 @@ class CharacterProfile(BaseModel):
 
 class CharacterSheetResponse(BaseModel):
     characters: List[CharacterProfile]
+
+class ImageRequest(BaseModel):
+    panel_id: int
+    description: str
+    characters: List[str]
+    style: Optional[str] = "preview"
+
+class ImageResponse(BaseModel):
+    panel_id: int
+    image_url: str
+    status: str
