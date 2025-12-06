@@ -1,5 +1,16 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Literal
+
+class ImageRequest(BaseModel):
+    panel_id: int
+    description: str
+    characters: List[str]
+    style: Literal["preview", "final"] = "preview"
+
+class ImageResponse(BaseModel):
+    panel_id: int
+    image_url: str
+    status: str
 
 class StoryRequest(BaseModel):
     prompt: str

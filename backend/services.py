@@ -1,5 +1,6 @@
 import asyncio
-from models import ScriptResponse, Panel, CharacterSheetResponse, CharacterProfile
+from models import ScriptResponse, Panel, CharacterSheetResponse, CharacterProfile, ImageResponse
+import random
 
 class ScriptGenerator:
     async def generate_script(self, prompt: str) -> ScriptResponse:
@@ -47,7 +48,26 @@ class ScriptGenerator:
                     personality="Cynical but moral.",
                     appearance="Trench coat, fedora, stubble, smoking a cigarette."
                 )
-            ]
+
+
+    async def generate_image(self, panel_id: int, description: str, style: str) -> ImageResponse:
+        # Simulate processing time based on style
+        delay = 1 if style == "preview" else 3
+        await asyncio.sleep(delay)
+        
+        # Return a placeholder image
+        # Using a reliable placeholder service
+        width = 400 if style == "preview" else 800
+        height = 600 if style == "preview" else 1200
+        
+        # Add random seed to get different images
+        seed = random.randint(1, 1000)
+        image_url = f"https://picsum.photos/seed/{seed}/{width}/{height}"
+        
+        return ImageResponse(
+            panel_id=panel_id,
+            image_url=image_url,
+            status="completed"
         )
 
 script_generator = ScriptGenerator()
