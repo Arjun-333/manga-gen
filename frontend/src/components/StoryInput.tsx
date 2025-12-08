@@ -1,69 +1,98 @@
-"use client";
-
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Sparkles, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import AdvancedOptions from './AdvancedOptions';
 
 interface StoryInputProps {
-  onSubmit: (prompt: string) => void;
+  onSubmit: (prompt: string, enhance: boolean, artStyle: string) => void;
   isLoading: boolean;
 }
 
 export default function StoryInput({ onSubmit, isLoading }: StoryInputProps) {
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt] = useState('');
+  const [step, setStep] = useState(1);
+  const [enhance, setEnhance] = useState(true);
+  const [artStyle, setArtStyle] = useState('manga');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (prompt.trim()) {
-      onSubmit(prompt);
+    if (!prompt.trim() || isLoading) return;
+
+    if (step === 1) {
+      setStep(2);
+    } else {
+      onSubmit(prompt, enhance, artStyle);
     }
   };
 
   return (
-    <motion.form 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      onSubmit={handleSubmit} 
-      className="w-full max-w-2xl mx-auto space-y-4"
-    >
-      <div className="relative group">
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-xl opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 blur"></div>
-        <div className="relative bg-white dark:bg-zinc-900 rounded-xl p-1">
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe your manga story here... (e.g. A cyberpunk detective hunting a rogue android in Neo-Tokyo)"
-            className="w-full h-32 p-4 rounded-lg border-0 bg-transparent focus:ring-0 resize-none text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
-            disabled={isLoading}
-          />
-          <div className="flex justify-end p-2 border-t border-gray-100 dark:border-zinc-800">
-            <button
-              type="submit"
-              disabled={isLoading || !prompt.trim()}
-              className={cn(
-                "px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 text-white shadow-lg",
-                isLoading || !prompt.trim() 
-                  ? "bg-gray-400 cursor-not-allowed" 
-                  : "bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 hover:shadow-pink-500/25"
-              )}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  Generate Script
-                </>
-              )}
-            </button>
+    <div className="w-full max-w-2xl mx-auto">
+      <form onSubmit={handleSubmit} className="relative">
+        <div className="relative bg-neutral-900 border border-neutral-700/50 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-md">
+          
+          <AnimatePresence mode="wait">
+            {step === 1 ? (
+              <motion.div 
+                key="input"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="p-4"
+              >
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Describe your manga idea (e.g. 'A cybernetic samurai fighting in a neon rain city')..."
+                  className="w-full h-32 bg-transparent text-white placeholder-neutral-500 resize-none focus:outline-none text-lg"
+                  autoFocus
+                />
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="options"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="p-4"
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <button 
+                    type="button" 
+                    onClick={() => setStep(1)}
+                    className="text-xs text-neutral-400 hover:text-white"
+                  >
+                    ← Back to Prompt
+                  </button>
+                  <span className="text-xs text-neutral-600">|</span>
+                  <span className="text-xs text-white truncate max-w-[200px]">{prompt}</span>
+                </div>
+                <AdvancedOptions 
+                  enhance={enhance} 
+                  setEnhance={setEnhance} 
+                  artStyle={artStyle} 
+                  setArtStyle={setArtStyle} 
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="p-3 bg-neutral-950/50 border-t border-white/5 flex justify-between items-center">
+             <div className="text-xs text-neutral-500 px-2">
+               {step === 1 ? 'Step 1: Idea' : 'Step 2: Style'}
+             </div>
+             <button
+               type="submit"
+               disabled={!prompt.trim() || isLoading}
+               className={`px-6 py-2 rounded-xl font-medium transition-all ${
+                 isLoading 
+                   ? 'bg-neutral-800 text-neutral-500 cursor-wait' 
+                   : 'bg-white text-black hover:bg-neutral-200'
+               }`}
+             >
+               {isLoading ? 'Generating...' : step === 1 ? 'Next' : 'Create Manga'}
+             </button>
           </div>
         </div>
-      </div>
-    </motion.form>
+      </form>
+    </div>
   );
 }

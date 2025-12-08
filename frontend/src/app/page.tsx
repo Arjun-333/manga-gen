@@ -21,15 +21,21 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("create");
   const [isPremium, setIsPremium] = useState(false);
 
+  // Usage State
+  const [usageStats, setUsageStats] = useState({ images: 0, scripts: 0 });
+  
   // Content State
   const [isLoading, setIsLoading] = useState(false);
   const [script, setScript] = useState<any>(null);
   const [characterSheet, setCharacterSheet] = useState<any>(null);
   const [panelImages, setPanelImages] = useState<Record<number, string>>({});
   const [isGeneratingImage, setIsGeneratingImage] = useState<Record<number, boolean>>({});
+  
+  // Generation Settings
+  const [currentStyle, setCurrentStyle] = useState('manga');
 
   useEffect(() => {
-    // Check for saved credentials
+    // 1. Credentials
     const savedName = localStorage.getItem("manga_user_name");
     const savedKey = localStorage.getItem("manga_api_key");
     const savedPremium = localStorage.getItem("manga_is_premium") === "true";
@@ -40,7 +46,30 @@ export default function Home() {
       setIsPremium(savedPremium);
       setIsLoggedIn(true);
     }
+
+    // 2. Usage Stats (Reset Daily)
+    const statsStr = localStorage.getItem("manga_usage_stats");
+    const lastReset = localStorage.getItem("manga_last_reset");
+    const today = new Date().toDateString();
+
+    if (lastReset !== today) {
+      // New day, reset stats
+      const newStats = { images: 0, scripts: 0 };
+      setUsageStats(newStats);
+      localStorage.setItem("manga_usage_stats", JSON.stringify(newStats));
+      localStorage.setItem("manga_last_reset", today);
+    } else if (statsStr) {
+      setUsageStats(JSON.parse(statsStr));
+    }
   }, []);
+
+  const updateUsage = (type: 'images' | 'scripts') => {
+    setUsageStats(prev => {
+      const newStats = { ...prev, [type]: prev[type] + 1 };
+      localStorage.setItem("manga_usage_stats", JSON.stringify(newStats));
+      return newStats;
+    });
+  };
 
   const handleLogin = (name: string, key: string) => {
     localStorage.setItem("manga_user_name", name);
@@ -69,34 +98,58 @@ export default function Home() {
     }
   };
 
-  const handleGenerate = async (prompt: string) => {
+  const handleGenerate = async (prompt: string, enhance: boolean, artStyle: string) => {
+    // Safety Limit Check - Script
+    if (!isPremium && usageStats.scripts >= 50) {
+      alert("Daily Script Limit Reached (Free Tier). Upgrade to Premium or wait until tomorrow.");
+      return;
+    }
+
     setIsLoading(true);
     setScript(null);
     setCharacterSheet(null);
     setPanelImages({});
+    setCurrentStyle(artStyle);
 
     try {
-      // 1. Generate Script
+      let finalPrompt = prompt;
+
+      // 1. Enhance Prompt (if requested)
+      if (enhance) {
+        const enhanceRes = await fetch("/api/enhance-prompt", {
+           method: "POST",
+           headers: { "Content-Type": "application/json", "x-gemini-api-key": apiKey },
+           body: JSON.stringify({ prompt }),
+        });
+        if (enhanceRes.ok) {
+           const data = await enhanceRes.json();
+           finalPrompt = data.enhanced_prompt;
+        }
+      }
+
+      // 2. Generate Script
       const scriptRes = await fetch("/api/generate/script", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           "x-gemini-api-key": apiKey 
         },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt: finalPrompt }),
       });
       if (!scriptRes.ok) throw new Error("Failed to generate script");
       const scriptData = await scriptRes.json();
       setScript(scriptData);
+      
+      updateUsage('scripts');
 
-      // 2. Generate Characters
+      // 3. Generate Characters
       const charRes = await fetch("/api/generate/characters", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           "x-gemini-api-key": apiKey 
         },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt: finalPrompt }),
       });
       if (!charRes.ok) throw new Error("Failed to generate characters");
       const charData = await charRes.json();
@@ -111,6 +164,12 @@ export default function Home() {
   };
 
   const handleGenerateImage = async (panelId: number, style: "preview" | "final") => {
+    // Safety Limit Check - Images
+    if (!isPremium && usageStats.images >= 50) {
+      alert("Daily Image Limit Reached (Free Tier). This protects your API key from overuse.");
+      return;
+    }
+
     if (!script) return;
     const panel = script.panels.find((p: any) => p.id === panelId);
     if (!panel) return;
@@ -118,7 +177,6 @@ export default function Home() {
     // FREEMIUM LOGIC: Show Ad if not premium
     if (!isPremium) {
       // Mock Ad Delay
-      // In a real app, show AdMob interstitial here
       await new Promise(resolve => setTimeout(resolve, 1500)); 
     }
 
@@ -134,13 +192,15 @@ export default function Home() {
           panel_id: panelId,
           description: panel.description,
           characters: panel.characters,
-          style: style
+          style: style,
+          art_style: currentStyle
         }),
       });
 
       if (!response.ok) throw new Error("Failed");
       const data = await response.json();
       setPanelImages(prev => ({ ...prev, [panelId]: data.image_url }));
+      updateUsage('images');
     } catch (error) {
       alert("Image generation failed");
     } finally {
@@ -161,6 +221,7 @@ export default function Home() {
           isPremium={isPremium} 
           onLogout={handleLogout} 
           onUpgrade={handleUpgrade}
+          usageStats={usageStats}
         />
       )}
 
@@ -196,7 +257,7 @@ export default function Home() {
                    Script Generated
                  </div>
                  <div className="bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full text-xs text-blue-300 whitespace-nowrap">
-                   Characters Ready
+                   Style: {currentStyle.toUpperCase()}
                  </div>
               </div>
 

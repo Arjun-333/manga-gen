@@ -11,10 +11,30 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   const [apiKey, setApiKey] = useState('');
   const [step, setStep] = useState(1);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isValidating, setIsValidating] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (name && apiKey) {
-      onLogin(name, apiKey);
+      setIsValidating(true);
+      setError('');
+      
+      try {
+        const res = await fetch('http://localhost:8000/auth/validate', {
+          headers: { 'x-gemini-api-key': apiKey }
+        });
+        
+        if (res.ok) {
+          onLogin(name, apiKey);
+        } else {
+          setError('Invalid API Key. Please check and try again.');
+        }
+      } catch (err) {
+        setError('Connection failed. Is the backend running?');
+      } finally {
+        setIsValidating(false);
+      }
     }
   };
 
@@ -87,21 +107,34 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                   <p className="text-xs text-neutral-500 px-1">
                     Your key is stored locally on your device properly.
                   </p>
+                  {error && (
+                    <p className="text-xs text-red-400 px-1 font-bold animate-pulse">
+                      {error}
+                    </p>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="w-full bg-white/5 hover:bg-white/10 text-white font-medium py-4 rounded-xl transition-colors"
+                    disabled={isValidating}
+                    className="w-full bg-white/5 hover:bg-white/10 text-white font-medium py-4 rounded-xl transition-colors disabled:opacity-50"
                   >
                     Back
                   </button>
                   <button
                     type="submit"
-                    disabled={!apiKey}
-                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-4 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 shadow-lg shadow-purple-500/20"
+                    disabled={!apiKey || isValidating}
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-4 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2"
                   >
-                    Enter App
+                    {isValidating ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Checking...
+                      </>
+                    ) : (
+                      'Enter App'
+                    )}
                   </button>
                 </div>
               </div>
