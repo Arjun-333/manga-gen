@@ -14,9 +14,11 @@
     "framer-motion": "^12.23.25",
     "konva": "^10.0.12",
     "lucide-react": "^0.556.0",
+    "motion": "^12.23.25",
     "next": "16.0.7",
     "react": "19.2.0",
     "react-dom": "19.2.0",
+    "react-icons": "^5.5.0",
     "react-konva": "^19.2.1",
     "tailwind-merge": "^3.4.0",
     "use-image": "^1.1.4"

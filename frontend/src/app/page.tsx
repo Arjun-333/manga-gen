@@ -1,72 +1,101 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
-import HealthCheck from "@/components/HealthCheck";
+import LoginScreen from "@/components/LoginScreen";
+import AppShell from "@/components/AppShell";
+import ProfileScreen from "@/components/ProfileScreen";
 import StoryInput from "@/components/StoryInput";
 import ScriptViewer from "@/components/ScriptViewer";
 import CharacterViewer from "@/components/CharacterViewer";
 import MangaPageViewer from "@/components/MangaPageViewer";
 
-// Dynamically import Konva component to avoid SSR issues
-const ChapterEditor = dynamic(() => import("@/components/ChapterEditor"), {
-  ssr: false,
-});
-
-interface Panel {
-  id: number;
-  description: string;
-  dialogue: string | null;
-  characters: string[];
-}
-
-interface ScriptResponse {
-  title: string;
-  panels: Panel[];
-}
-
-interface Character {
-  name: string;
-  description: string;
-  personality: string;
-  appearance: string;
-}
-
-interface CharacterSheetResponse {
-  characters: Character[];
-}
+// Dynamically import Konva component
+const ChapterEditor = dynamic(() => import("@/components/ChapterEditor"), { ssr: false });
 
 export default function Home() {
+  // App State
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [activeTab, setActiveTab] = useState("create");
+  const [isPremium, setIsPremium] = useState(false);
+
+  // Content State
   const [isLoading, setIsLoading] = useState(false);
-  const [script, setScript] = useState<ScriptResponse | null>(null);
-  const [characterSheet, setCharacterSheet] = useState<CharacterSheetResponse | null>(null);
+  const [script, setScript] = useState<any>(null);
+  const [characterSheet, setCharacterSheet] = useState<any>(null);
   const [panelImages, setPanelImages] = useState<Record<number, string>>({});
   const [isGeneratingImage, setIsGeneratingImage] = useState<Record<number, boolean>>({});
-  const [mode, setMode] = useState<"preview" | "editor">("preview");
+
+  useEffect(() => {
+    // Check for saved credentials
+    const savedName = localStorage.getItem("manga_user_name");
+    const savedKey = localStorage.getItem("manga_api_key");
+    const savedPremium = localStorage.getItem("manga_is_premium") === "true";
+
+    if (savedName && savedKey) {
+      setUserName(savedName);
+      setApiKey(savedKey);
+      setIsPremium(savedPremium);
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  const handleLogin = (name: string, key: string) => {
+    localStorage.setItem("manga_user_name", name);
+    localStorage.setItem("manga_api_key", key);
+    setUserName(name);
+    setApiKey(key);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("manga_user_name");
+    localStorage.removeItem("manga_api_key");
+    setIsLoggedIn(false);
+    setUserName("");
+    setApiKey("");
+    setScript(null);
+  };
+
+  const handleUpgrade = () => {
+    // Mock upgrade flow
+    const confirmed = confirm("Mock Payment: Pay ₹499 for Premium?");
+    if (confirmed) {
+      localStorage.setItem("manga_is_premium", "true");
+      setIsPremium(true);
+      alert("Welcome to Premium!");
+    }
+  };
 
   const handleGenerate = async (prompt: string) => {
     setIsLoading(true);
     setScript(null);
     setCharacterSheet(null);
     setPanelImages({});
-    setMode("preview");
-    
+
     try {
-      // Generate Script
+      // 1. Generate Script
       const scriptRes = await fetch("/api/generate/script", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-gemini-api-key": apiKey 
+        },
         body: JSON.stringify({ prompt }),
       });
       if (!scriptRes.ok) throw new Error("Failed to generate script");
       const scriptData = await scriptRes.json();
       setScript(scriptData);
 
-      // Generate Characters
+      // 2. Generate Characters
       const charRes = await fetch("/api/generate/characters", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-gemini-api-key": apiKey 
+        },
         body: JSON.stringify({ prompt }),
       });
       if (!charRes.ok) throw new Error("Failed to generate characters");
@@ -75,7 +104,7 @@ export default function Home() {
 
     } catch (error) {
       console.error(error);
-      alert("Something went wrong. Please check if the backend is running.");
+      alert("Generation failed. Check your API Key.");
     } finally {
       setIsLoading(false);
     }
@@ -83,15 +112,24 @@ export default function Home() {
 
   const handleGenerateImage = async (panelId: number, style: "preview" | "final") => {
     if (!script) return;
-    const panel = script.panels.find(p => p.id === panelId);
+    const panel = script.panels.find((p: any) => p.id === panelId);
     if (!panel) return;
 
-    setIsGeneratingImage(prev => ({ ...prev, [panelId]: true }));
+    // FREEMIUM LOGIC: Show Ad if not premium
+    if (!isPremium) {
+      // Mock Ad Delay
+      // In a real app, show AdMob interstitial here
+      await new Promise(resolve => setTimeout(resolve, 1500)); 
+    }
 
+    setIsGeneratingImage(prev => ({ ...prev, [panelId]: true }));
     try {
       const response = await fetch("/api/generate/image", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-gemini-api-key": apiKey 
+        },
         body: JSON.stringify({
           panel_id: panelId,
           description: panel.description,
@@ -100,112 +138,87 @@ export default function Home() {
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to generate image");
+      if (!response.ok) throw new Error("Failed");
       const data = await response.json();
       setPanelImages(prev => ({ ...prev, [panelId]: data.image_url }));
     } catch (error) {
-      console.error(error);
-      alert("Failed to generate image");
+      alert("Image generation failed");
     } finally {
       setIsGeneratingImage(prev => ({ ...prev, [panelId]: false }));
     }
   };
 
+  if (!isLoggedIn) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center p-8 md:p-24 bg-gray-50 dark:bg-zinc-950 relative overflow-hidden">
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl mix-blend-multiply dark:mix-blend-screen animate-blob"></div>
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl mix-blend-multiply dark:mix-blend-screen animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-32 left-1/3 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl mix-blend-multiply dark:mix-blend-screen animate-blob animation-delay-4000"></div>
-      </div>
+    <AppShell activeTab={activeTab} onTabChange={setActiveTab}>
+      
+      {activeTab === 'profile' && (
+        <ProfileScreen 
+          userName={userName} 
+          isPremium={isPremium} 
+          onLogout={handleLogout} 
+          onUpgrade={handleUpgrade}
+        />
+      )}
 
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex mb-12">
-        <HealthCheck />
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Manga Chapter Generator
-        </p>
-      </div>
-
-      <div className="relative flex place-items-center mb-16 z-10">
-        <h1 className="text-4xl md:text-7xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-b from-neutral-800 to-neutral-500 dark:from-neutral-200 dark:to-neutral-500 tracking-tight">
-          Create Your Manga
-        </h1>
-      </div>
-
-      <div className="z-10 w-full">
-        <StoryInput onSubmit={handleGenerate} isLoading={isLoading} />
-
-        {characterSheet && <CharacterViewer characterSheet={characterSheet} />}
-        
-        {script && (
-          <>
-            <div className="w-full max-w-4xl mx-auto mt-12 flex justify-center gap-4 bg-white/50 dark:bg-zinc-900/50 p-2 rounded-xl backdrop-blur-sm border border-gray-200 dark:border-zinc-800">
-              <button
-                onClick={() => setMode("preview")}
-                className={`px-6 py-2 rounded-lg font-medium transition-all ${
-                  mode === "preview" 
-                    ? "bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 shadow-md transform scale-105" 
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-                }`}
-              >
-                Script & Preview
-              </button>
-              <button
-                onClick={() => setMode("editor")}
-                className={`px-6 py-2 rounded-lg font-medium transition-all ${
-                  mode === "editor" 
-                    ? "bg-white dark:bg-zinc-800 text-purple-600 dark:text-purple-400 shadow-md transform scale-105" 
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-                }`}
-              >
-                Chapter Editor
-              </button>
-            </div>
-
-            {mode === "preview" ? (
-              <>
-                <ScriptViewer script={script} />
-                <MangaPageViewer 
-                  panels={script.panels} 
-                  images={panelImages} 
-                  onGenerateImage={handleGenerateImage}
-                  isGenerating={isGeneratingImage}
-                />
-              </>
-            ) : (
-              <ChapterEditor panels={script.panels} images={panelImages} />
-            )}
-          </>
-        )}
-
-        {!script && !isLoading && (
-          <div className="mt-24 grid text-center lg:max-w-5xl lg:w-full lg:grid-cols-2 gap-8 mx-auto">
-            <div className="group rounded-xl border border-gray-200 dark:border-zinc-800 px-5 py-8 transition-all hover:border-blue-500/50 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 hover:shadow-xl hover:shadow-blue-500/10">
-              <h2 className="mb-3 text-2xl font-semibold">
-                Preview Mode{" "}
-                <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-                  -&gt;
-                </span>
-              </h2>
-              <p className="m-0 text-sm opacity-50">
-                Fast generation for quick iteration. Perfect for storyboarding.
-              </p>
-            </div>
-
-            <div className="group rounded-xl border border-gray-200 dark:border-zinc-800 px-5 py-8 transition-all hover:border-purple-500/50 hover:bg-purple-50/50 dark:hover:bg-purple-900/20 hover:shadow-xl hover:shadow-purple-500/10">
-              <h2 className="mb-3 text-2xl font-semibold">
-                Final Mode{" "}
-                <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-                  -&gt;
-                </span>
-              </h2>
-              <p className="m-0 text-sm opacity-50">
-                High quality output with consistent characters and layouts.
-              </p>
-            </div>
+      {activeTab === 'library' && (
+        <div className="flex flex-col items-center justify-center h-full text-neutral-500 gap-4 mt-20">
+          <div className="p-4 bg-white/5 rounded-full">
+            <span className="text-4xl">📚</span>
           </div>
-        )}
-      </div>
-    </main>
+          <p>Your library is empty</p>
+        </div>
+      )}
+
+      {activeTab === 'create' && (
+        <div className="p-4 space-y-8 pb-24">
+          {/* Header */}
+          <div className="pt-8 pb-4">
+            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
+              Create Manga
+            </h1>
+            <p className="text-neutral-400 text-sm mt-1">
+              {script ? "Editing your story" : "What story do you want to tell?"}
+            </p>
+          </div>
+
+          {!script ? (
+            <StoryInput onSubmit={handleGenerate} isLoading={isLoading} />
+          ) : (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {characterSheet && <CharacterViewer characterSheet={characterSheet} />}
+              
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                 <div className="bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full text-xs text-purple-300 whitespace-nowrap">
+                   Script Generated
+                 </div>
+                 <div className="bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full text-xs text-blue-300 whitespace-nowrap">
+                   Characters Ready
+                 </div>
+              </div>
+
+              <ScriptViewer script={script} />
+              
+              <MangaPageViewer 
+                panels={script.panels} 
+                images={panelImages} 
+                onGenerateImage={handleGenerateImage}
+                isGenerating={isGeneratingImage}
+              />
+              
+              <button 
+                onClick={() => setScript(null)}
+                className="w-full py-4 text-neutral-500 text-sm hover:text-white transition-colors"
+              >
+                Start New Story
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </AppShell>
   );
 }
