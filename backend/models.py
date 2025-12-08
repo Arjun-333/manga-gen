@@ -10,6 +10,18 @@ class EnhanceRequest(BaseModel):
 class EnhanceResponse(BaseModel):
     enhanced_prompt: str
 
+class Panel(BaseModel):
+    id: int
+    description: str
+    dialogue: Optional[str] = None
+    characters: List[str]
+
+class CharacterProfile(BaseModel):
+    name: str
+    description: str
+    personality: str
+    appearance: str
+
 class ScriptResponse(BaseModel):
     title: str
     panels: List[Panel]

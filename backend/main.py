@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
-from models import StoryRequest, ScriptResponse, CharacterSheetResponse, EnhanceRequest, EnhanceResponse
+from models import StoryRequest, ScriptResponse, CharacterSheetResponse, EnhanceRequest, EnhanceResponse, ImageRequest, ImageResponse
 from services import script_generator
 
 app = FastAPI(title="Manga Chapter Generator API")
@@ -38,20 +38,38 @@ async def enhance_prompt(request: EnhanceRequest, x_gemini_api_key: str = Header
     return EnhanceResponse(enhanced_prompt=enhanced_text)
 
 @app.post("/generate/script", response_model=ScriptResponse)
-async def generate_script(request: StoryRequest, x_gemini_api_key: str = Header(None)):
-    if not x_gemini_api_key:
+async def generate_script(request: StoryRequest, authorization: str = Header(None), x_gemini_api_key: str = Header(None)):
+    # Try both headers
+    final_key = x_gemini_api_key
+    if not final_key and authorization and authorization.startswith("Bearer "):
+        final_key = authorization.replace("Bearer ", "")
+    
+    print(f"Generate Script Request.")
+    print(f"  - Auth Header: {bool(authorization)}")
+    print(f"  - X-Key Header: {bool(x_gemini_api_key)}")
+    print(f"  - Final Key resolved: {bool(final_key)}")
+    
+    if not final_key:
         raise HTTPException(status_code=401, detail="API Key required")
-    return await script_generator.generate_script(request.prompt, x_gemini_api_key)
+    return await script_generator.generate_script(request.prompt, final_key)
 
 @app.post("/generate/characters", response_model=CharacterSheetResponse)
-async def generate_characters(request: StoryRequest, x_gemini_api_key: str = Header(None)):
-    if not x_gemini_api_key:
+async def generate_characters(request: StoryRequest, authorization: str = Header(None), x_gemini_api_key: str = Header(None)):
+    final_key = x_gemini_api_key
+    if not final_key and authorization and authorization.startswith("Bearer "):
+        final_key = authorization.replace("Bearer ", "")
+
+    if not final_key:
         raise HTTPException(status_code=401, detail="API Key required")
-    return await script_generator.generate_characters(request.prompt, x_gemini_api_key)
+    return await script_generator.generate_characters(request.prompt, final_key)
 
 @app.post("/generate/image", response_model=ImageResponse)
-async def generate_image(request: ImageRequest, x_gemini_api_key: str = Header(None)):
-    if not x_gemini_api_key:
+async def generate_image(request: ImageRequest, authorization: str = Header(None), x_gemini_api_key: str = Header(None)):
+    final_key = x_gemini_api_key
+    if not final_key and authorization and authorization.startswith("Bearer "):
+        final_key = authorization.replace("Bearer ", "")
+
+    if not final_key:
         raise HTTPException(status_code=401, detail="API Key required")
     return await script_generator.generate_image(
         request.panel_id, 

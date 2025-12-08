@@ -12,15 +12,27 @@ class ScriptGenerator:
         os.makedirs("static/images", exist_ok=True)
 
     async def validate_api_key(self, api_key: str) -> bool:
-        """Validate API key by making a lightweight call"""
+        """Validate API key using Regex (fast) and Flash (authoritative)"""
+        # 1. Fast Local Check
+        if not api_key or not api_key.startswith("AIza") or len(api_key) < 35:
+            print(f"Validation failed: Invalid format. Length: {len(api_key) if api_key else 0}")
+            return False
+
         self._configure_genai(api_key)
         try:
-            # Just try to list models to verify auth
-            async for _ in genai.list_models(page_size=1):
-                break
+            # 2. Authoritative Check (List Models)
+            print(f"Validating key via list_models()...")
+            # Run in thread to prevent blocking
+            models = await asyncio.to_thread(list, genai.list_models())
+            available_names = [m.name for m in models]
+            print(f"Validation successful! Found models: {available_names}")
+            
+            # Check if we have at least one model
+            if not models:
+                 print("Warning: Key valid but no models found.")
             return True
         except Exception as e:
-            print(f"Validation failed: {e}")
+            print(f"Validation failed during API call: {e}")
             return False
 
     def _configure_genai(self, api_key: str):
@@ -35,7 +47,8 @@ class ScriptGenerator:
     async def generate_script(self, prompt: str, api_key: str) -> ScriptResponse:
         """Generate a manga script using Gemini Pro"""
         self._configure_genai(api_key)
-        model = genai.GenerativeModel('gemini-1.5-pro')
+        # Using gemini-2.0-flash as it is available to user
+        model = genai.GenerativeModel('gemini-2.0-flash')
         
         system_prompt = """
         You are an expert manga story writer. Create a structured manga script based on the user's prompt.
@@ -69,7 +82,8 @@ class ScriptGenerator:
     async def generate_characters(self, prompt: str, api_key: str) -> CharacterSheetResponse:
         """Generate character sheets using Gemini Pro"""
         self._configure_genai(api_key)
-        model = genai.GenerativeModel('gemini-1.5-pro')
+        # Using gemini-2.0-flash
+        model = genai.GenerativeModel('gemini-2.0-flash')
         
         system_prompt = """
         Create detailed character profiles for a manga based on this story idea.
@@ -102,7 +116,8 @@ class ScriptGenerator:
     async def enhance_story_prompt(self, prompt: str, api_key: str) -> str:
         """Enhance a simple story idea into a detailed prompt"""
         self._configure_genai(api_key)
-        model = genai.GenerativeModel('gemini-1.5-pro')
+        # Using gemini-2.0-flash
+        model = genai.GenerativeModel('gemini-2.0-flash')
         
         system_prompt = """
         You are an expert manga editor. Take the user's simple story idea and expand it into a compelling, 
@@ -148,8 +163,8 @@ class ScriptGenerator:
             image_prompt += " Sketchy, storyboard style."
 
         try:
-            # Using Imagen 3 model
-            model = genai.ImageGenerationModel("imagen-3.0-generate-001")
+            # Using Imagen 4.0 model (available to user)
+            model = genai.ImageGenerationModel("imagen-4.0-fast-generate-001")
             
             result = await model.generate_images_async(
                 prompt=image_prompt,

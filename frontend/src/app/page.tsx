@@ -105,6 +105,28 @@ export default function Home() {
       return;
     }
 
+    // Validated Key Logic
+    let currentKey = apiKey;
+    if (!currentKey) {
+      console.log("State key missing, checking storage...");
+      currentKey = localStorage.getItem("manga_api_key") || "";
+    }
+    
+    // Emergency Fallback
+    if (!currentKey) {
+        const manualKey = prompt("DEBUG: The App lost your API Key. Please paste it here one last time:") || "";
+        if (manualKey) {
+            currentKey = manualKey;
+            localStorage.setItem("manga_api_key", manualKey);
+            setApiKey(manualKey);
+        } else {
+            alert("Cannot generate without a key!");
+            return;
+        }
+    }
+
+    alert(`Debug: Sending Key (Length: ${currentKey.length})`); // Temporary Debug Alert
+
     setIsLoading(true);
     setScript(null);
     setCharacterSheet(null);
@@ -118,7 +140,7 @@ export default function Home() {
       if (enhance) {
         const enhanceRes = await fetch("/api/enhance-prompt", {
            method: "POST",
-           headers: { "Content-Type": "application/json", "x-gemini-api-key": apiKey },
+           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${currentKey}` },
            body: JSON.stringify({ prompt }),
         });
         if (enhanceRes.ok) {
@@ -132,7 +154,7 @@ export default function Home() {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "x-gemini-api-key": apiKey 
+          "Authorization": `Bearer ${currentKey}` 
         },
         body: JSON.stringify({ prompt: finalPrompt }),
       });
@@ -147,7 +169,7 @@ export default function Home() {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "x-gemini-api-key": apiKey 
+          "x-gemini-api-key": currentKey 
         },
         body: JSON.stringify({ prompt: finalPrompt }),
       });
@@ -180,13 +202,14 @@ export default function Home() {
       await new Promise(resolve => setTimeout(resolve, 1500)); 
     }
 
+    const currentKey = apiKey || localStorage.getItem("manga_api_key") || "";
     setIsGeneratingImage(prev => ({ ...prev, [panelId]: true }));
     try {
       const response = await fetch("/api/generate/image", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "x-gemini-api-key": apiKey 
+          "x-gemini-api-key": currentKey 
         },
         body: JSON.stringify({
           panel_id: panelId,
