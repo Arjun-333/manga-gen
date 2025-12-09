@@ -158,7 +158,10 @@ export default function Home() {
         },
         body: JSON.stringify({ prompt: finalPrompt }),
       });
-      if (!scriptRes.ok) throw new Error("Failed to generate script");
+      if (!scriptRes.ok) {
+        const err = await scriptRes.json();
+        throw new Error(err.detail || "Failed to generate script");
+      }
       const scriptData = await scriptRes.json();
       setScript(scriptData);
       
@@ -169,17 +172,20 @@ export default function Home() {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "x-gemini-api-key": currentKey 
+          "Authorization": `Bearer ${currentKey}` 
         },
         body: JSON.stringify({ prompt: finalPrompt }),
       });
-      if (!charRes.ok) throw new Error("Failed to generate characters");
+      if (!charRes.ok) {
+        const err = await charRes.json();
+        throw new Error(err.detail || "Failed to generate characters");
+      }
       const charData = await charRes.json();
       setCharacterSheet(charData);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Generation failed. Check your API Key.");
+      alert(`Generation failed: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -209,7 +215,7 @@ export default function Home() {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "x-gemini-api-key": currentKey 
+          "Authorization": `Bearer ${currentKey}` 
         },
         body: JSON.stringify({
           panel_id: panelId,

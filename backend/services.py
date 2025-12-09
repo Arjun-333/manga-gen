@@ -47,8 +47,8 @@ class ScriptGenerator:
     async def generate_script(self, prompt: str, api_key: str) -> ScriptResponse:
         """Generate a manga script using Gemini Pro"""
         self._configure_genai(api_key)
-        # Using gemini-2.0-flash as it is available to user
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        # Using gemini-2.5-flash
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         system_prompt = """
         You are an expert manga story writer. Create a structured manga script based on the user's prompt.
@@ -82,8 +82,8 @@ class ScriptGenerator:
     async def generate_characters(self, prompt: str, api_key: str) -> CharacterSheetResponse:
         """Generate character sheets using Gemini Pro"""
         self._configure_genai(api_key)
-        # Using gemini-2.0-flash
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        # Using gemini-2.5-flash
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         system_prompt = """
         Create detailed character profiles for a manga based on this story idea.
@@ -116,8 +116,8 @@ class ScriptGenerator:
     async def enhance_story_prompt(self, prompt: str, api_key: str) -> str:
         """Enhance a simple story idea into a detailed prompt"""
         self._configure_genai(api_key)
-        # Using gemini-2.0-flash
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        # Using gemini-2.5-flash
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         system_prompt = """
         You are an expert manga editor. Take the user's simple story idea and expand it into a compelling, 

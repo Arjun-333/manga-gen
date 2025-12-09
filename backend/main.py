@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from models import StoryRequest, ScriptResponse, CharacterSheetResponse, EnhanceRequest, EnhanceResponse, ImageRequest, ImageResponse
 from services import script_generator
+from google.api_core.exceptions import ResourceExhausted
 
 app = FastAPI(title="Manga Chapter Generator API")
 
@@ -31,10 +32,14 @@ async def validate_auth(x_gemini_api_key: str = Header(None)):
     return {"status": "valid"}
 
 @app.post("/enhance-prompt", response_model=EnhanceResponse)
-async def enhance_prompt(request: EnhanceRequest, x_gemini_api_key: str = Header(None)):
-    if not x_gemini_api_key:
+async def enhance_prompt(request: EnhanceRequest, authorization: str = Header(None), x_gemini_api_key: str = Header(None)):
+    final_key = x_gemini_api_key
+    if not final_key and authorization and authorization.startswith("Bearer "):
+        final_key = authorization.replace("Bearer ", "")
+    
+    if not final_key:
         raise HTTPException(status_code=401, detail="API Key required")
-    enhanced_text = await script_generator.enhance_story_prompt(request.prompt, x_gemini_api_key)
+    enhanced_text = await script_generator.enhance_story_prompt(request.prompt, final_key)
     return EnhanceResponse(enhanced_prompt=enhanced_text)
 
 @app.post("/generate/script", response_model=ScriptResponse)
@@ -51,7 +56,13 @@ async def generate_script(request: StoryRequest, authorization: str = Header(Non
     
     if not final_key:
         raise HTTPException(status_code=401, detail="API Key required")
-    return await script_generator.generate_script(request.prompt, final_key)
+    
+    try:
+        return await script_generator.generate_script(request.prompt, final_key)
+    except ResourceExhausted as e:
+        raise HTTPException(status_code=429, detail=f"Quota Exceeded: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/generate/characters", response_model=CharacterSheetResponse)
 async def generate_characters(request: StoryRequest, authorization: str = Header(None), x_gemini_api_key: str = Header(None)):
@@ -61,7 +72,13 @@ async def generate_characters(request: StoryRequest, authorization: str = Header
 
     if not final_key:
         raise HTTPException(status_code=401, detail="API Key required")
-    return await script_generator.generate_characters(request.prompt, final_key)
+        
+    try:
+        return await script_generator.generate_characters(request.prompt, final_key)
+    except ResourceExhausted as e:
+        raise HTTPException(status_code=429, detail=f"Quota Exceeded: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/generate/image", response_model=ImageResponse)
 async def generate_image(request: ImageRequest, authorization: str = Header(None), x_gemini_api_key: str = Header(None)):
@@ -71,13 +88,19 @@ async def generate_image(request: ImageRequest, authorization: str = Header(None
 
     if not final_key:
         raise HTTPException(status_code=401, detail="API Key required")
-    return await script_generator.generate_image(
-        request.panel_id, 
-        request.description, 
-        request.style, 
-        request.art_style,
-        x_gemini_api_key
-    )
+        
+    try:
+        return await script_generator.generate_image(
+            request.panel_id, 
+            request.description, 
+            request.style, 
+            request.art_style,
+            final_key
+        )
+    except ResourceExhausted as e:
+        raise HTTPException(status_code=429, detail=f"Quota Exceeded: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/")
 async def root():
