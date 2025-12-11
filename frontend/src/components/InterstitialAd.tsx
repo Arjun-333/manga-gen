@@ -31,24 +31,16 @@ export default function InterstitialAd({ onComplete }: InterstitialAdProps) {
         {/* Ad Container */}
         <div className="bg-gray-200 dark:bg-zinc-800 w-full aspect-video flex items-center justify-center relative overflow-hidden">
           
-          {/* Placeholder for actual AdSense Unit */}
-          <div className="text-center p-6">
-            <p className="text-gray-400 mb-2">Google AdSense Display Ad</p>
-            <p className="text-xs text-gray-500">(Configure Slot ID in code)</p>
-          </div>
-
-          {/* 
-            TODO: Replace the above div with your actual AdSense code:
-            <ins className="adsbygoogle"
-                 style={{ display: 'block' }}
-                 data-ad-client="ca-pub-6023239200845388"
-                 data-ad-slot="YOUR_AD_SLOT_ID"
-                 data-ad-format="auto"
-                 data-full-width-responsive="true"></ins>
-            <script>
-                 (adsbygoogle = window.adsbygoogle || []).push({});
-            </script>
-          */}
+          {/* AdSense Display Ad */}
+          <ins className="adsbygoogle"
+               style={{ display: 'block', width: '100%', height: '100%' }}
+               data-ad-client="ca-pub-6023239200845388"
+               data-ad-slot="3528601259"
+               data-ad-format="auto"
+               data-full-width-responsive="true"></ins>
+          <script>
+               (adsbygoogle = window.adsbygoogle || []).push({});
+          </script>
         </div>
 
         {/* Action Button */}
