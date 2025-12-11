@@ -213,7 +213,7 @@ export default function Home() {
 
     } catch (error: any) {
       console.error(error);
-      alert(`Generation failed: ${error.message}`);
+      alert(`Generation failed:\n${error.message}\n\nCheck API Keys in Settings if error persists.`);
     } finally {
       setIsLoading(false);
     }

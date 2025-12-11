@@ -18,6 +18,15 @@ const nextConfig: NextConfig = {
         hostname: "via.placeholder.com",
       },
     ],
+    ],
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "https://manga-gen-api.onrender.com/:path*",
+      },
+    ];
   },
 };
 
