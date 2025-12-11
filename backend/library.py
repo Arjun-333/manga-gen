@@ -71,7 +71,8 @@ class ProjectManager:
                 id=pid,
                 title=title,
                 updated_at=pdata.get("updated_at", datetime.now().isoformat()),
-                thumbnail_url=thumbnail
+                thumbnail_url=thumbnail,
+                panel_count=len(pdata.get("images", {}))
             ))
         
         # Sort by updated_at desc

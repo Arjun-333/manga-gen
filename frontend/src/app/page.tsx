@@ -10,13 +10,17 @@ import StoryInput from "@/components/StoryInput";
 import ScriptViewer from "@/components/ScriptViewer";
 import CharacterViewer from "@/components/CharacterViewer";
 import MangaPageViewer from "@/components/MangaPageViewer";
+import { FiPenTool, FiSave } from "react-icons/fi";
+
+const ChapterEditor = dynamic(() => import("@/components/ChapterEditor"), { ssr: false });
 
 export default function Home() {
   // App State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("");
-  const [userEmail, setUserEmail] = useState(""); // Needed for profile
+  const [userEmail, setUserEmail] = useState("");
   const [apiKey, setApiKey] = useState("");
+  const [hfToken, setHfToken] = useState("");
   const [activeTab, setActiveTab] = useState("create");
   
   // Content State
@@ -27,6 +31,14 @@ export default function Home() {
   const [panelImages, setPanelImages] = useState<Record<number, string>>({});
   const [isGeneratingImage, setIsGeneratingImage] = useState<Record<number, boolean>>({});
   
+  // Quota Stats
+  const [quota, setQuota] = useState<{ remaining: number | null, reset: number | null, total: number | null }>({
+     remaining: null, reset: null, total: null
+  });
+
+  // Editor State
+  const [showLettering, setShowLettering] = useState(false);
+  
   // Generation Settings
   const [currentStyle, setCurrentStyle] = useState('manga');
 
@@ -35,14 +47,21 @@ export default function Home() {
     const savedName = localStorage.getItem("manga_user_name");
     const savedEmail = localStorage.getItem("manga_user_email");
     const savedKey = localStorage.getItem("manga_api_key");
+    const savedHfToken = localStorage.getItem("manga_hf_token");
 
     if (savedName && savedKey) {
       setUserName(savedName);
       setUserEmail(savedEmail || "user@example.com");
       setApiKey(savedKey);
+      if (savedHfToken) setHfToken(savedHfToken);
       setIsLoggedIn(true);
     }
   }, []);
+
+  const handleUpdateHfToken = (token: string) => {
+     setHfToken(token);
+     localStorage.setItem("manga_hf_token", token);
+  };
 
   const handleLogin = (name: string, key: string, email?: string) => {
     localStorage.setItem("manga_user_name", name);
@@ -57,7 +76,7 @@ export default function Home() {
   };
 
   const handleLogout = () => {
-    localStorage.clear(); // Clear all data on logout
+    localStorage.clear();
     setIsLoggedIn(false);
     setUserName("");
     setApiKey("");
@@ -70,10 +89,9 @@ export default function Home() {
   const handleSaveProject = async () => {
     if (!script) return;
     
-    // Auto-generate title if missing
     const title = script.title || "Untitled Story";
     const projectData = {
-       id: projectId || "", // Empty string implies new project
+       id: projectId || "", 
        title: title,
        created_at: new Date().toISOString(),
        updated_at: new Date().toISOString(),
@@ -110,7 +128,7 @@ export default function Home() {
            setScript(project.script);
            setPanelImages(project.images);
            setCurrentStyle(project.art_style);
-           setActiveTab("create"); // Switch to editor
+           setActiveTab("create");
         }
      } catch (err) {
         console.error(err);
@@ -123,13 +141,12 @@ export default function Home() {
     setScript(null);
     setCharacterSheet(null);
     setPanelImages({});
-    setProjectId(null); // Reset ID for new story
+    setProjectId(null);
     setCurrentStyle(artStyle);
 
     try {
       let finalPrompt = prompt;
 
-      // 1. Enhance Prompt (if requested)
       if (enhance) {
         const enhanceRes = await fetch("/api/enhance-prompt", {
            method: "POST",
@@ -142,7 +159,6 @@ export default function Home() {
         }
       }
 
-      // 2. Generate Script
       const scriptRes = await fetch("/api/generate/script", {
         method: "POST",
         headers: { 
@@ -155,7 +171,6 @@ export default function Home() {
       const scriptData = await scriptRes.json();
       setScript(scriptData);
       
-      // 3. Generate Characters
       const charRes = await fetch("/api/generate/characters", {
         method: "POST",
         headers: { 
@@ -166,7 +181,6 @@ export default function Home() {
       });
       if (charRes.ok) {
          const charData = await charRes.json();
-         // Merge characters into script response for consistency context
          if (!scriptData.characters) {
              setScript({ ...scriptData, characters: charData.characters });
          }
@@ -186,8 +200,6 @@ export default function Home() {
     const panel = script.panels.find((p: any) => p.id === panelId);
     if (!panel) return;
     
-    // Prepare Character Context Map
-    // Convert List<CharacterProfile> to Dict<Name, Desc>
     const charContext: Record<string, string> = {};
     if (script.characters) {
        script.characters.forEach((c: any) => {
@@ -209,16 +221,23 @@ export default function Home() {
           characters: panel.characters,
           style: style,
           art_style: currentStyle,
-          character_profiles: charContext // Inject Context!
+          character_profiles: charContext,
+          hf_token: hfToken
         }),
       });
 
       if (!response.ok) throw new Error("Failed");
       const data = await response.json();
       setPanelImages(prev => ({ ...prev, [panelId]: data.image_url }));
-      
-      // Auto-save after generation (optional, or just prompt user)
-      // handleSaveProject(); 
+
+      // Update Quota
+      if (data.rate_limit_remaining !== undefined) {
+         setQuota({
+            remaining: data.rate_limit_remaining,
+            reset: data.rate_limit_reset,
+            total: data.rate_limit_total
+         });
+      }
       
     } catch (error) {
       alert("Image generation failed");
@@ -236,19 +255,28 @@ export default function Home() {
   };
 
   if (!isLoggedIn) {
-    return <LoginScreen onLogin={(name, key) => handleLogin(name, key)} />;
+    return <LoginScreen onLogin={(name, key, email) => handleLogin(name, key, email)} />;
   }
 
   return (
     <AppShell activeTab={activeTab} onTabChange={setActiveTab}>
       
+      {showLettering && script && (
+         <ChapterEditor 
+            panels={script.panels} 
+            images={panelImages} 
+            onClose={() => setShowLettering(false)} 
+         />
+      )}
+
       {activeTab === 'profile' && (
         <ProfileSettings 
            name={userName} 
            email={userEmail} 
            apiKey={apiKey}
            setApiKey={setApiKey}
-           hfToken="" // Managed on server
+           hfToken={hfToken}
+           setHfToken={handleUpdateHfToken} 
            onLogout={handleLogout} 
         />
       )}
@@ -280,12 +308,20 @@ export default function Home() {
                        {currentStyle}
                     </span>
                  </div>
-                 <button 
-                   onClick={handleSaveProject}
-                   className="bg-black dark:bg-white text-white dark:text-black px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:opacity-80 transition-opacity"
-                 >
-                   Save
-                 </button>
+                 <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => setShowLettering(true)}
+                      className="bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center gap-2"
+                    >
+                      <FiPenTool /> Lettering
+                    </button>
+                    <button 
+                      onClick={handleSaveProject}
+                      className="bg-black dark:bg-white text-white dark:text-black px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:opacity-80 transition-opacity flex items-center gap-2"
+                    >
+                      <FiSave /> Save
+                    </button>
+                 </div>
               </div>
 
               {/* Viewers */}
@@ -298,6 +334,8 @@ export default function Home() {
                 onGenerateImage={handleGenerateImage}
                 onPanelUpdate={handlePanelUpdate}
                 isGenerating={isGeneratingImage}
+                // hfToken is not needed by Viewer, only by Parent to pass to API
+                quota={quota}
               />
               
               <div className="pt-8 border-t border-gray-100 dark:border-zinc-800">

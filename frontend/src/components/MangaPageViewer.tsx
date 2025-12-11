@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { useState } from "react";
-import { FiRefreshCw, FiEdit2, FiCheck } from "react-icons/fi";
+import { FiRefreshCw, FiEdit2, FiCheck, FiInfo, FiActivity, FiClock, FiAlertCircle } from "react-icons/fi";
 
 interface Panel {
   id: number;
@@ -15,59 +15,89 @@ interface MangaPageViewerProps {
   onGenerateImage: (panelId: number, style: "preview" | "final") => void;
   isGenerating: Record<number, boolean>;
   onPanelUpdate?: (id: number, newDescription: string) => void;
+  // Quota Props
+  quota?: { remaining: number | null, reset: number | null, total: number | null };
 }
 
-export default function MangaPageViewer({ panels, images, onGenerateImage, isGenerating, onPanelUpdate }: MangaPageViewerProps) {
+export default function MangaPageViewer({ panels, images, onGenerateImage, isGenerating, onPanelUpdate, quota }: MangaPageViewerProps) {
   const [selectedStyle, setSelectedStyle] = useState<"preview" | "final">("preview");
   const [editingPanelId, setEditingPanelId] = useState<number | null>(null);
 
-  // If we are regenerating, we should close the edit mode? Or keep it open?
-  // Let's close it when generation starts in parent (via useEffect) or just manually here.
-  
   const handleGenerate = (panelId: number) => {
     onGenerateImage(panelId, selectedStyle);
     setEditingPanelId(null);
   };
+  
+  // Format Reset Time (seconds to MM:SS)
+  const formatTime = (seconds: number) => {
+     const m = Math.floor(seconds / 60);
+     const s = seconds % 60;
+     return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-8 pb-32">
+    <div className="w-full max-w-none mx-auto space-y-8 pb-32">
       
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 border-b border-gray-200 dark:border-zinc-800">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            Panel Generation
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">Review descriptions and generate visuals</p>
+      <div className="flex flex-col gap-6 py-4 border-b border-gray-200 dark:border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+           <div>
+             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+               Panel Generation
+             </h2>
+             <p className="text-sm text-gray-500 mt-1">Review descriptions and generate visuals</p>
+           </div>
+   
+           {/* Professional Segmented Control */}
+           <div className="inline-flex bg-gray-100 dark:bg-zinc-800 p-1 rounded-lg">
+             <button
+               onClick={() => setSelectedStyle("preview")}
+               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                 selectedStyle === "preview"
+                   ? "bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white"
+                   : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-300"
+               }`}
+             >
+               Draft Mode
+             </button>
+             <button
+               onClick={() => setSelectedStyle("final")}
+               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                 selectedStyle === "final"
+                   ? "bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white"
+                   : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-300"
+               }`}
+             >
+               High Quality
+             </button>
+           </div>
         </div>
-
-        {/* Professional Segmented Control */}
-        <div className="inline-flex bg-gray-100 dark:bg-zinc-800 p-1 rounded-lg">
-          <button
-            onClick={() => setSelectedStyle("preview")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              selectedStyle === "preview"
-                ? "bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white"
-                : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-300"
-            }`}
-          >
-            Draft Mode
-          </button>
-          <button
-            onClick={() => setSelectedStyle("final")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              selectedStyle === "final"
-                ? "bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white"
-                : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-300"
-            }`}
-          >
-            High Quality
-          </button>
-        </div>
+        
+        {/* Quota Bar (Only shows if quota data is available) */}
+        {quota && quota.remaining !== null && (
+           <div className="flex items-center gap-4 py-2 px-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg text-sm">
+              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-medium">
+                 <FiActivity />
+                 <span>Usage Quota:</span>
+              </div>
+              <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
+                 <span>
+                    <strong className={quota.remaining < 2 ? "text-red-500" : "text-gray-900 dark:text-gray-200"}>
+                       {quota.remaining}
+                    </strong> requests remaining
+                 </span>
+                 {quota.reset && (
+                    <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                       <FiClock /> Refills in {formatTime(quota.reset)}
+                    </span>
+                 )}
+              </div>
+           </div>
+        )}
       </div>
 
       {/* Panels List */}
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 align-top">
         {panels.map((panel, index) => (
           <div 
             key={panel.id} 

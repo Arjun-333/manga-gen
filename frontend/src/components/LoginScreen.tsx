@@ -4,7 +4,7 @@ import { FcGoogle } from 'react-icons/fc';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 
 interface LoginScreenProps {
-  onLogin: (name: string, apiKey: string) => void;
+  onLogin: (name: string, apiKey: string, email?: string) => void;
 }
 
 // Inner component to use the hook context
@@ -256,7 +256,7 @@ export default function LoginScreen(props: LoginScreenProps) {
         headers: { 'x-gemini-api-key': apiKey }
       });
       if (res.ok) {
-        props.onLogin(name, apiKey);
+        props.onLogin(name, apiKey, email);
       } else {
         setError('Invalid API Key provided.');
       }

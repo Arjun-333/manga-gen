@@ -105,7 +105,9 @@ async def generate_image(request: ImageRequest, authorization: str = Header(None
             request.style, 
             request.art_style,
             final_key,
-            request.character_profiles # Pass context for consistency
+            request.character_profiles, # Pass context for consistency
+            request.characters, # Pass active characters for strict filtering
+            request.hf_token # Pass User Token
         )
     except ResourceExhausted as e:
         raise HTTPException(status_code=429, detail=f"Quota Exceeded: {str(e)}")

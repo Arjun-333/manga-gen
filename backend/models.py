@@ -39,12 +39,17 @@ class ImageRequest(BaseModel):
     characters: List[str]
     style: str
     art_style: Optional[str] = "manga"
-    character_profiles: Optional[Dict[str, str]] = None # Contextual Prompting Injection
+    character_profiles: Optional[Dict[str, str]] = None 
+    hf_token: Optional[str] = None # User Provided Token
 
 class ImageResponse(BaseModel):
     panel_id: int
     image_url: str
     status: str
+    # Quota Stats
+    rate_limit_remaining: Optional[int] = None
+    rate_limit_reset: Optional[int] = None
+    rate_limit_total: Optional[int] = None
 
 # --- Library Models ---
 class Project(BaseModel):
@@ -61,3 +66,4 @@ class ProjectSummary(BaseModel):
     title: str
     updated_at: str
     thumbnail_url: Optional[str] = None
+    panel_count: int = 0
