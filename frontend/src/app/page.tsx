@@ -10,7 +10,10 @@ import StoryInput from "@/components/StoryInput";
 import ScriptViewer from "@/components/ScriptViewer";
 import CharacterViewer from "@/components/CharacterViewer";
 import MangaPageViewer from "@/components/MangaPageViewer";
+import WelcomeTutorial from "@/components/WelcomeTutorial";
+import InterstitialAd from "@/components/InterstitialAd";
 import { FiPenTool, FiSave } from "react-icons/fi";
+import { API_BASE_URL } from "../config";
 
 const ChapterEditor = dynamic(() => import("@/components/ChapterEditor"), { ssr: false });
 
@@ -22,6 +25,8 @@ export default function Home() {
   const [apiKey, setApiKey] = useState("");
   const [hfToken, setHfToken] = useState("");
   const [activeTab, setActiveTab] = useState("create");
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [pendingImageConfig, setPendingImageConfig] = useState<{panelId: number, style: "preview" | "final"} | null>(null);
   
   // Content State
   const [isLoading, setIsLoading] = useState(false);
@@ -73,6 +78,12 @@ export default function Home() {
     setUserName(name);
     setApiKey(key);
     setIsLoggedIn(true);
+    
+    // Show tutorial for new users
+    const hasSeenTutorial = localStorage.getItem("manga_tutorial_seen");
+    if (!hasSeenTutorial) {
+      setShowTutorial(true);
+    }
   };
 
   const handleLogout = () => {
@@ -101,7 +112,7 @@ export default function Home() {
     };
     
     try {
-       const res = await fetch("http://localhost:8000/projects", {
+       const res = await fetch(`${API_BASE_URL}/projects`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(projectData)
@@ -121,7 +132,7 @@ export default function Home() {
   
   const handleLoadProject = async (id: string) => {
      try {
-        const res = await fetch(`http://localhost:8000/projects/${id}`);
+        const res = await fetch(`${API_BASE_URL}/projects/${id}`);
         if (res.ok) {
            const project = await res.json();
            setProjectId(project.id);
@@ -137,6 +148,19 @@ export default function Home() {
   };
 
   const handleGenerate = async (prompt: string, enhance: boolean, artStyle: string) => {
+    // Check if API keys are configured
+    if (!apiKey || apiKey === 'placeholder-key') {
+      const confirmRedirect = window.confirm(
+        "⚠️ API Key Required\n\n" +
+        "You need to configure your Gemini API key to generate scripts.\n\n" +
+        "Would you like to go to Workspace Settings now?"
+      );
+      if (confirmRedirect) {
+        setActiveTab('profile');
+      }
+      return;
+    }
+    
     setIsLoading(true);
     setScript(null);
     setCharacterSheet(null);
@@ -200,6 +224,43 @@ export default function Home() {
     const panel = script.panels.find((p: any) => p.id === panelId);
     if (!panel) return;
     
+    // Check if API keys are configured
+    if (!apiKey || apiKey === 'placeholder-key') {
+      const confirmRedirect = window.confirm(
+        "⚠️ API Key Required\n\n" +
+        "You need to configure your Gemini API key to generate images.\n\n" +
+        "Would you like to go to Workspace Settings now?"
+      );
+      if (confirmRedirect) {
+        setActiveTab('profile');
+      }
+      return;
+    }
+    
+    if (!hfToken) {
+      const confirmRedirect = window.confirm(
+        "⚠️ Hugging Face Token Required\n\n" +
+        "You need to configure your Hugging Face token to generate images.\n\n" +
+        "Would you like to go to Workspace Settings now?"
+      );
+      if (confirmRedirect) {
+        setActiveTab('profile');
+      }
+      return;
+    }
+    
+    // Show Ad before generation
+    setPendingImageConfig({ panelId, style });
+  };
+
+  const executeImageGeneration = async () => {
+    if (!pendingImageConfig) return;
+    const { panelId, style } = pendingImageConfig;
+    setPendingImageConfig(null);
+
+    const panel = script.panels.find((p: any) => p.id === panelId);
+    if (!panel) return;
+
     const charContext: Record<string, string> = {};
     if (script.characters) {
        script.characters.forEach((c: any) => {
@@ -243,6 +304,15 @@ export default function Home() {
       alert("Image generation failed");
     } finally {
       setIsGeneratingImage(prev => ({ ...prev, [panelId]: false }));
+    }
+  };
+  
+  const handleUpdateCharacters = (updatedCharacters: any[]) => {
+    if (script) {
+      setScript({
+        ...script,
+        characters: updatedCharacters
+      });
     }
   };
   
@@ -325,7 +395,7 @@ export default function Home() {
               </div>
 
               {/* Viewers */}
-              {characterSheet && <CharacterViewer characterSheet={characterSheet} />}
+              {characterSheet && <CharacterViewer characterSheet={characterSheet} onUpdateCharacters={handleUpdateCharacters} />}
               <ScriptViewer script={script} />
               
               <MangaPageViewer 
@@ -349,6 +419,21 @@ export default function Home() {
             </div>
           )}
         </div>
+      )}
+      
+      {/* Tutorial Modal */}
+      {showTutorial && (
+        <WelcomeTutorial 
+          onClose={() => {
+            setShowTutorial(false);
+            localStorage.setItem("manga_tutorial_seen", "true");
+          }}
+        />
+      )}
+      
+      {/* AdSense Interstitial */}
+      {pendingImageConfig && (
+        <InterstitialAd onComplete={executeImageGeneration} />
       )}
     </AppShell>
   );

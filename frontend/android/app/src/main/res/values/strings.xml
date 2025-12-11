@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Manga Gen</string>
+    <string name="title_activity_main">Manga Gen</string>
+    <string name="package_name">com.mangagen.app</string>
+    <string name="custom_url_scheme">com.mangagen.app</string>
+</resources>

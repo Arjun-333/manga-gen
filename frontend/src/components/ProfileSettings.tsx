@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiUser, FiSettings, FiKey, FiLogOut, FiDatabase, FiTrash2, FiDownload, FiCheckCircle } from 'react-icons/fi';
+import { API_BASE_URL } from "../config";
 
 interface ProfileSettingsProps {
   name: string;
@@ -25,7 +26,7 @@ export default function ProfileSettings({ name, email, onLogout, apiKey, setApiK
      // Fetch stats on mount
      const fetchStats = async () => {
         try {
-           const res = await fetch('http://localhost:8000/projects');
+           const res = await fetch(`${API_BASE_URL}/projects`);
            if (res.ok) {
               const projects = await res.json();
               setTotalProjects(projects.length);

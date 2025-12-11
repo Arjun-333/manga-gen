@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { FiClock, FiGrid, FiArrowRight, FiDownload, FiFileText } from 'react-icons/fi';
 import Image from "next/image";
 import jsPDF from "jspdf";
+import { API_BASE_URL } from "../config";
 
 interface ProjectSummary {
   id: string;
@@ -31,9 +32,9 @@ export default function LibraryView({ onLoadProject }: LibraryViewProps) {
     fetchProjects();
   }, []);
 
-  const fetchProjects = async () => {
+    const fetchProjects = async () => {
     try {
-      const res = await fetch('http://localhost:8000/projects');
+      const res = await fetch(`${API_BASE_URL}/projects`);
       if (res.ok) {
         const data = await res.json();
         setProjects(data);
@@ -51,7 +52,7 @@ export default function LibraryView({ onLoadProject }: LibraryViewProps) {
 
     try {
         // 1. Fetch full project data to get images
-        const res = await fetch(`http://localhost:8000/projects/${projectId}`);
+        const res = await fetch(`${API_BASE_URL}/projects/${projectId}`);
         if (!res.ok) throw new Error("Failed to load project data");
         const data: ProjectData = await res.json();
         

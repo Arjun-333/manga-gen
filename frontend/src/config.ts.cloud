@@ -1,0 +1,5 @@
+// API Configuration
+// Switch to "http://localhost:8000" for local development
+// Use "https://manga-gen-api.onrender.com" for production/mobile
+
+export const API_BASE_URL = "https://manga-gen-api.onrender.com";

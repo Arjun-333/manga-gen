@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FcGoogle } from 'react-icons/fc';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
+import { API_BASE_URL } from '../config';
 
 interface LoginScreenProps {
   onLogin: (name: string, apiKey: string, email?: string) => void;
@@ -17,7 +18,8 @@ function LoginContent({ onLogin, step, setStep, authMode, setAuthMode, name, set
     await new Promise(r => setTimeout(r, 1000)); // Simulating email login
     setIsLoading(false);
     if (authMode === 'login' && !name) setName(email.split('@')[0]); 
-    setStep(2);
+    // Skip API key step - go straight to app
+    onLogin(name || email.split('@')[0], 'placeholder-key', email);
   };
 
   const login = useGoogleLogin({
@@ -30,7 +32,8 @@ function LoginContent({ onLogin, step, setStep, authMode, setAuthMode, name, set
       .then(data => {
         setName(data.name);
         setEmail(data.email);
-        setStep(2); 
+        // Skip API key step - go straight to app
+        onLogin(data.name, 'placeholder-key', data.email);
       })
       .catch(err => console.error(err))
       .finally(() => setIsLoading(false));
@@ -133,7 +136,8 @@ function LoginContent({ onLogin, step, setStep, authMode, setAuthMode, name, set
                   </button>
                 </form>
 
-                <div className="relative">
+                {/* Google Login disabled for mobile APK - requires OAuth configuration */}
+                {/* <div className="relative">
                   <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-zinc-700"></div></div>
                   <div className="relative flex justify-center text-xs uppercase"><span className="bg-white dark:bg-zinc-900 px-2 text-gray-400">Or continue with</span></div>
                 </div>
@@ -145,7 +149,7 @@ function LoginContent({ onLogin, step, setStep, authMode, setAuthMode, name, set
                 >
                   <FcGoogle className="text-xl" />
                   <span className="font-medium text-gray-700 dark:text-gray-200">Google</span>
-                </button>
+                </button> */}
               </motion.div>
             ) : (
               <motion.div 
@@ -214,6 +218,12 @@ function LoginContent({ onLogin, step, setStep, authMode, setAuthMode, name, set
                       )}
                     </button>
 
+                    {isValidatingKey && (
+                      <p className="text-xs text-center text-gray-400 animate-pulse">
+                        ⏱️ First connection may take up to 60 seconds while the server wakes up...
+                      </p>
+                    )}
+
                     <button 
                       type="button" 
                       onClick={() => setStep(1)}
@@ -252,7 +262,7 @@ export default function LoginScreen(props: LoginScreenProps) {
     setIsValidatingKey(true);
     setError('');
     try {
-      const res = await fetch('http://localhost:8000/auth/validate', {
+      const res = await fetch(`${API_BASE_URL}/auth/validate`, {
         headers: { 'x-gemini-api-key': apiKey }
       });
       if (res.ok) {

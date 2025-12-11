@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // output: 'export', // Disabled for Vercel deployment
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
@@ -16,14 +18,6 @@ const nextConfig: NextConfig = {
         hostname: "via.placeholder.com",
       },
     ],
-  },
-  async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        destination: "http://127.0.0.1:8000/:path*",
-      },
-    ];
   },
 };
 
