@@ -1,8 +1,11 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict
+from datetime import datetime
 
 class StoryRequest(BaseModel):
     prompt: str
+    enhance: bool = True
+    art_style: str = "manga"
 
 class EnhanceRequest(BaseModel):
     prompt: str
@@ -25,6 +28,7 @@ class CharacterProfile(BaseModel):
 class ScriptResponse(BaseModel):
     title: str
     panels: List[Panel]
+    characters: Optional[List[CharacterProfile]] = []
 
 class CharacterSheetResponse(BaseModel):
     characters: List[CharacterProfile]
@@ -35,8 +39,25 @@ class ImageRequest(BaseModel):
     characters: List[str]
     style: str
     art_style: Optional[str] = "manga"
+    character_profiles: Optional[Dict[str, str]] = None # Contextual Prompting Injection
 
 class ImageResponse(BaseModel):
     panel_id: int
     image_url: str
     status: str
+
+# --- Library Models ---
+class Project(BaseModel):
+    id: str
+    title: str
+    created_at: str
+    updated_at: str
+    script: ScriptResponse
+    images: Dict[str, str] # panel_id -> image_url
+    art_style: str
+
+class ProjectSummary(BaseModel):
+    id: str
+    title: str
+    updated_at: str
+    thumbnail_url: Optional[str] = None

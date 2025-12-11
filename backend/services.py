@@ -7,6 +7,7 @@ import os
 import re
 import httpx
 from huggingface_hub import AsyncInferenceClient
+from typing import Dict, Optional, List
 from PIL import Image
 
 class ScriptGenerator:
@@ -65,9 +66,13 @@ class ScriptGenerator:
                     "dialogue": "Character dialogue (or null if none)",
                     "characters": ["Char1", "Char2"]
                 }
+            ],
+            "characters": [
+                 { "name": "Char1", "description": "Role", "personality": "Traits", "appearance": "Visual description" }
             ]
         }
         """
+        # Note: Added "characters" field to system prompt so we get them in one shot for consistency!
         
         try:
             response = await model.generate_content_async(
@@ -136,7 +141,15 @@ class ScriptGenerator:
             print(f"Error enhancing prompt: {e}")
             return prompt  # Fallback to original
 
-    async def generate_image(self, panel_id: int, description: str, style: str, art_style: str, api_key: str) -> ImageResponse:
+    async def generate_image(
+        self, 
+        panel_id: int, 
+        description: str, 
+        style: str, 
+        art_style: str, 
+        api_key: str, 
+        character_profiles: Optional[Dict[str, str]] = None
+    ) -> ImageResponse:
         """Generate panel images using Hugging Face (SDXL)"""
         
         # NOTE: For this architecture, we use the Server's HF Token
@@ -163,13 +176,29 @@ class ScriptGenerator:
         
         selected_style_prompt = style_prompts.get(art_style.lower(), style_prompts["manga"])
 
-        # Prompt Engineering for SDXL
-        # SDXL likes comma separated keywords
-        image_prompt = f"{selected_style_prompt}, {description}, monochromatic, manga page, high quality, masterpiece, 4k"
+        # --- Contextual Prompting Logic ---
+        # 1. Identify characters mentioned in description (simple heuristic)
+        #    Wait, we don't need heuristic if frontend passes character names?
+        #    Better: Just inject ALL character descriptions provided in the Map.
+        #    BUT we want to be targeted. 
+        #    Let's stick to the simplest effective method: Inject descriptions for ALL characters in the story context.
+        #    The prompt length limit of SDXL is generous.
         
-        negative_prompt = "color, realistic photo, 3d render, bad anatomy, bad hands, text, watermark, blurry, low quality"
+        character_context = ""
+        if character_profiles:
+            character_context = "Characters: " + ", ".join([f"{name}: {desc}" for name, desc in character_profiles.items()])
+            # Limit context length to avoid token spill
+            if len(character_context) > 300:
+                character_context = character_context[:300] + "..."
 
-        print(f"Generating Image with HF (SDXL)... Panel {panel_id}")
+        # Prompt Engineering for SDXL
+        # Structure: Style + Characters + Action/Description + Quality Modifiers
+        image_prompt = f"{selected_style_prompt}. {character_context}. {description}, monochromatic, manga page, high quality, masterpiece, 4k"
+        
+        print(f"Generating Image for Panel {panel_id}")
+        print(f"  > Prompt: {image_prompt}")
+        
+        negative_prompt = "color, realistic photo, 3d render, bad anatomy, bad hands, text, watermark, blurry, low quality, extra limbs"
 
         try:
             print(f"Connecting to HF Hub as Async Client...")

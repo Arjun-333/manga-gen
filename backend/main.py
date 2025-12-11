@@ -1,11 +1,13 @@
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from models import StoryRequest, ScriptResponse, CharacterSheetResponse, EnhanceRequest, EnhanceResponse, ImageRequest, ImageResponse
+from models import StoryRequest, ScriptResponse, CharacterSheetResponse, EnhanceRequest, EnhanceResponse, ImageRequest, ImageResponse, Project, ProjectSummary
 from services import script_generator
+from library import ProjectManager
 from google.api_core.exceptions import ResourceExhausted
 from dotenv import load_dotenv
 import os
+from typing import List
 
 # Load environment variables (HF Token etc)
 load_dotenv()
@@ -14,6 +16,9 @@ app = FastAPI(title="Manga Chapter Generator API")
 
 # Mount static files directory
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Initialize Library
+library = ProjectManager()
 
 # Configure CORS
 app.add_middleware(
@@ -58,11 +63,6 @@ async def generate_script(request: StoryRequest, authorization: str = Header(Non
     if not final_key and authorization and authorization.startswith("Bearer "):
         final_key = authorization.replace("Bearer ", "")
     
-    print(f"Generate Script Request.")
-    print(f"  - Auth Header: {bool(authorization)}")
-    print(f"  - X-Key Header: {bool(x_gemini_api_key)}")
-    print(f"  - Final Key resolved: {bool(final_key)}")
-    
     if not final_key:
         raise HTTPException(status_code=401, detail="API Key required")
     
@@ -104,12 +104,44 @@ async def generate_image(request: ImageRequest, authorization: str = Header(None
             request.description, 
             request.style, 
             request.art_style,
-            final_key
+            final_key,
+            request.character_profiles # Pass context for consistency
         )
     except ResourceExhausted as e:
         raise HTTPException(status_code=429, detail=f"Quota Exceeded: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# --- Library Endpoints ---
+
+@app.post("/projects", response_model=str)
+async def save_project(project: Project):
+    try:
+        project_id = library.save_project(project)
+        return project_id
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save project: {str(e)}")
+
+@app.get("/projects", response_model=List[ProjectSummary])
+async def list_projects():
+    try:
+        return library.get_all_projects()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list projects: {str(e)}")
+
+@app.get("/projects/{project_id}", response_model=Project)
+async def get_project(project_id: str):
+    project = library.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+@app.delete("/projects/{project_id}")
+async def delete_project(project_id: str):
+    success = library.delete_project(project_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"status": "deleted"}
 
 @app.get("/")
 async def root():
