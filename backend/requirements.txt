@@ -3,3 +3,5 @@ uvicorn
 google-generativeai>=0.8.3
 replicate
 python-dotenv
+huggingface_hub
+aiohttp

@@ -237,6 +237,14 @@ export default function Home() {
     }
   };
 
+  const handlePanelUpdate = (panelId: number, newDescription: string) => {
+    if (!script) return;
+    const updatedPanels = script.panels.map((p: any) => 
+      p.id === panelId ? { ...p, description: newDescription } : p
+    );
+    setScript({ ...script, panels: updatedPanels });
+  };
+
   if (!isLoggedIn) {
     return <LoginScreen onLogin={handleLogin} />;
   }
@@ -296,6 +304,7 @@ export default function Home() {
                 panels={script.panels} 
                 images={panelImages} 
                 onGenerateImage={handleGenerateImage}
+                onPanelUpdate={handlePanelUpdate}
                 isGenerating={isGeneratingImage}
               />
               

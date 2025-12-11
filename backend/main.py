@@ -1,10 +1,19 @@
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from models import StoryRequest, ScriptResponse, CharacterSheetResponse, EnhanceRequest, EnhanceResponse, ImageRequest, ImageResponse
 from services import script_generator
 from google.api_core.exceptions import ResourceExhausted
+from dotenv import load_dotenv
+import os
+
+# Load environment variables (HF Token etc)
+load_dotenv()
 
 app = FastAPI(title="Manga Chapter Generator API")
+
+# Mount static files directory
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Configure CORS
 app.add_middleware(

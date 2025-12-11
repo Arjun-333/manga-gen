@@ -5,6 +5,9 @@ import asyncio
 import base64
 import os
 import re
+import httpx
+from huggingface_hub import AsyncInferenceClient
+from PIL import Image
 
 class ScriptGenerator:
     def __init__(self):
@@ -134,55 +137,64 @@ class ScriptGenerator:
             return prompt  # Fallback to original
 
     async def generate_image(self, panel_id: int, description: str, style: str, art_style: str, api_key: str) -> ImageResponse:
-        """Generate panel images using Imagen 3"""
-        self._configure_genai(api_key)
+        """Generate panel images using Hugging Face (SDXL)"""
         
-        # Style Definitions
+        # NOTE: For this architecture, we use the Server's HF Token
+        # You must set HUGGING_FACE_TOKEN in backend/.env
+        hf_token = os.getenv("HUGGING_FACE_TOKEN")
+        if not hf_token:
+            print("Error: HUGGING_FACE_TOKEN not set in backend environment.")
+            return ImageResponse(
+                panel_id=panel_id,
+                image_url="https://via.placeholder.com/400x600?text=Missing+HF+Token",
+                status="failed"
+            )
+
+        # Style Definitions for SDXL
         style_prompts = {
-            "manga": "Classic manga style, black and white ink, screentones",
-            "shonen": "Shonen jump style, dynamic action, bold lines, high contrast, impact frames",
-            "shojo": "Shojo manga style, delicate lines, flowers, sparkly eyes, emotional atmosphere",
-            "seinen": "Seinen manga style, gritty, realistic proportions, detailed backgrounds, dark atmosphere",
-            "cyberpunk": "Cyberpunk manga style, heavy machinery, neon accents (in bw), tech wear, wires",
-            "watercolor": "Watercolor manga cover style, soft blending, artistic, dreamlike",
-            "horror": "Junji ito style horror manga, detailed shading, creepy atmosphere, spiraling lines"
+            "manga": "manga style, black and white, japanese manga, screentones, ink illustration",
+            "shonen": "shonen manga style, dynamic action, high contrast, impact frames, bold lines",
+            "shojo": "shojo manga style, delicate lines, emotional, flowers, sparkle, soft shading",
+            "seinen": "seinen manga style, gritty, realistic proportions, detailed background, dark atmosphere",
+            "cyberpunk": "cyberpunk manga style, neon accents (monochrome), tech wear, messy wires, futuristic",
+            "watercolor": "watercolor manga style, soft artistic, dreamlike, wet media",
+            "horror": "junji ito style, horror manga, linework, creepypasta, scary, spiral"
         }
         
         selected_style_prompt = style_prompts.get(art_style.lower(), style_prompts["manga"])
 
-        # Enhanced prompt for Manga style
-        image_prompt = f"""
-        {selected_style_prompt}.
-        A single manga panel showing: {description}.
-        Professional manga illustration, detailed line art, dramatic composition, monochrome.
-        """
+        # Prompt Engineering for SDXL
+        # SDXL likes comma separated keywords
+        image_prompt = f"{selected_style_prompt}, {description}, monochromatic, manga page, high quality, masterpiece, 4k"
         
-        if style == "final":
-            image_prompt += " High quality, masterwork, detailed background."
-        else:
-            image_prompt += " Sketchy, storyboard style."
+        negative_prompt = "color, realistic photo, 3d render, bad anatomy, bad hands, text, watermark, blurry, low quality"
+
+        print(f"Generating Image with HF (SDXL)... Panel {panel_id}")
 
         try:
-            # Using Imagen 4.0 model (available to user)
-            model = genai.ImageGenerationModel("imagen-4.0-fast-generate-001")
-            
-            result = await model.generate_images_async(
-                prompt=image_prompt,
-                number_of_images=1,
-                aspect_ratio="3:4",
-                safety_filter_level="block_only_high",
-                person_generation="allow_adult"
+            print(f"Connecting to HF Hub as Async Client...")
+            client = AsyncInferenceClient(
+                model="stabilityai/stable-diffusion-xl-base-1.0", 
+                token=hf_token
             )
             
-            if not result.images:
-                raise ValueError("No image generated")
-            
-            img = result.images[0]
+            # Generate Image (Async)
+            image = await client.text_to_image(
+                image_prompt,
+                negative_prompt=negative_prompt
+            )
             
             # Save locally
             filename = f"panel_{panel_id}_{hash(description)}.png"
+            
+            # Ensure directory exists (Robust fix)
+            os.makedirs("static/images", exist_ok=True)
+            
             filepath = os.path.join("static/images", filename)
-            img.save(filepath)
+            abs_path = os.path.abspath(filepath)
+            print(f"Saving image to: {abs_path}")
+            
+            image.save(filepath)
             
             # Return URL
             image_url = f"http://localhost:8000/static/images/{filename}"
@@ -195,7 +207,6 @@ class ScriptGenerator:
             
         except Exception as e:
             print(f"Error generating image: {e}")
-            # Fallback for errors to prevent app crash
             return ImageResponse(
                 panel_id=panel_id,
                 image_url="https://via.placeholder.com/400x600?text=Generation+Failed",
