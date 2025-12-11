@@ -4,32 +4,40 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import LoginScreen from "@/components/LoginScreen";
 import AppShell from "@/components/AppShell";
-import ProfileScreen from "@/components/ProfileScreen";
+import ProfileSettings from "@/components/ProfileSettings";
+import LibraryView from "@/components/LibraryView";
 import StoryInput from "@/components/StoryInput";
 import ScriptViewer from "@/components/ScriptViewer";
 import CharacterViewer from "@/components/CharacterViewer";
 import MangaPageViewer from "@/components/MangaPageViewer";
+import { FiPenTool, FiSave } from "react-icons/fi";
 
-// Dynamically import Konva component
 const ChapterEditor = dynamic(() => import("@/components/ChapterEditor"), { ssr: false });
 
 export default function Home() {
   // App State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
   const [apiKey, setApiKey] = useState("");
+  const [hfToken, setHfToken] = useState("");
   const [activeTab, setActiveTab] = useState("create");
-  const [isPremium, setIsPremium] = useState(false);
-
-  // Usage State
-  const [usageStats, setUsageStats] = useState({ images: 0, scripts: 0 });
   
   // Content State
   const [isLoading, setIsLoading] = useState(false);
+  const [projectId, setProjectId] = useState<string | null>(null);
   const [script, setScript] = useState<any>(null);
   const [characterSheet, setCharacterSheet] = useState<any>(null);
   const [panelImages, setPanelImages] = useState<Record<number, string>>({});
   const [isGeneratingImage, setIsGeneratingImage] = useState<Record<number, boolean>>({});
+  
+  // Quota Stats
+  const [quota, setQuota] = useState<{ remaining: number | null, reset: number | null, total: number | null }>({
+     remaining: null, reset: null, total: null
+  });
+
+  // Editor State
+  const [showLettering, setShowLettering] = useState(false);
   
   // Generation Settings
   const [currentStyle, setCurrentStyle] = useState('manga');
@@ -37,110 +45,112 @@ export default function Home() {
   useEffect(() => {
     // 1. Credentials
     const savedName = localStorage.getItem("manga_user_name");
+    const savedEmail = localStorage.getItem("manga_user_email");
     const savedKey = localStorage.getItem("manga_api_key");
-    const savedPremium = localStorage.getItem("manga_is_premium") === "true";
+    const savedHfToken = localStorage.getItem("manga_hf_token");
 
     if (savedName && savedKey) {
       setUserName(savedName);
+      setUserEmail(savedEmail || "user@example.com");
       setApiKey(savedKey);
-      setIsPremium(savedPremium);
+      if (savedHfToken) setHfToken(savedHfToken);
       setIsLoggedIn(true);
-    }
-
-    // 2. Usage Stats (Reset Daily)
-    const statsStr = localStorage.getItem("manga_usage_stats");
-    const lastReset = localStorage.getItem("manga_last_reset");
-    const today = new Date().toDateString();
-
-    if (lastReset !== today) {
-      // New day, reset stats
-      const newStats = { images: 0, scripts: 0 };
-      setUsageStats(newStats);
-      localStorage.setItem("manga_usage_stats", JSON.stringify(newStats));
-      localStorage.setItem("manga_last_reset", today);
-    } else if (statsStr) {
-      setUsageStats(JSON.parse(statsStr));
     }
   }, []);
 
-  const updateUsage = (type: 'images' | 'scripts') => {
-    setUsageStats(prev => {
-      const newStats = { ...prev, [type]: prev[type] + 1 };
-      localStorage.setItem("manga_usage_stats", JSON.stringify(newStats));
-      return newStats;
-    });
+  const handleUpdateHfToken = (token: string) => {
+     setHfToken(token);
+     localStorage.setItem("manga_hf_token", token);
   };
 
-  const handleLogin = (name: string, key: string) => {
+  const handleLogin = (name: string, key: string, email?: string) => {
     localStorage.setItem("manga_user_name", name);
     localStorage.setItem("manga_api_key", key);
+    if (email) {
+       localStorage.setItem("manga_user_email", email);
+       setUserEmail(email);
+    }
     setUserName(name);
     setApiKey(key);
     setIsLoggedIn(true);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("manga_user_name");
-    localStorage.removeItem("manga_api_key");
+    localStorage.clear();
     setIsLoggedIn(false);
     setUserName("");
     setApiKey("");
     setScript(null);
+    window.location.reload(); 
   };
+  
+  // --- Project Management ---
 
-  const handleUpgrade = () => {
-    // Mock upgrade flow
-    const confirmed = confirm("Mock Payment: Pay ₹499 for Premium?");
-    if (confirmed) {
-      localStorage.setItem("manga_is_premium", "true");
-      setIsPremium(true);
-      alert("Welcome to Premium!");
+  const handleSaveProject = async () => {
+    if (!script) return;
+    
+    const title = script.title || "Untitled Story";
+    const projectData = {
+       id: projectId || "", 
+       title: title,
+       created_at: new Date().toISOString(),
+       updated_at: new Date().toISOString(),
+       script: script,
+       images: panelImages,
+       art_style: currentStyle
+    };
+    
+    try {
+       const res = await fetch("http://localhost:8000/projects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(projectData)
+       });
+       if (res.ok) {
+          const newId = await res.json();
+          setProjectId(newId);
+          alert("Project saved successfully!");
+       } else {
+          throw new Error("Save failed");
+       }
+    } catch (err) {
+       console.error(err);
+       alert("Failed to save project.");
     }
+  };
+  
+  const handleLoadProject = async (id: string) => {
+     try {
+        const res = await fetch(`http://localhost:8000/projects/${id}`);
+        if (res.ok) {
+           const project = await res.json();
+           setProjectId(project.id);
+           setScript(project.script);
+           setPanelImages(project.images);
+           setCurrentStyle(project.art_style);
+           setActiveTab("create");
+        }
+     } catch (err) {
+        console.error(err);
+        alert("Failed to load project.");
+     }
   };
 
   const handleGenerate = async (prompt: string, enhance: boolean, artStyle: string) => {
-    // Safety Limit Check - Script
-    if (!isPremium && usageStats.scripts >= 50) {
-      alert("Daily Script Limit Reached (Free Tier). Upgrade to Premium or wait until tomorrow.");
-      return;
-    }
-
-    // Validated Key Logic
-    let currentKey = apiKey;
-    if (!currentKey) {
-      console.log("State key missing, checking storage...");
-      currentKey = localStorage.getItem("manga_api_key") || "";
-    }
-    
-    // Emergency Fallback
-    if (!currentKey) {
-        const manualKey = prompt("DEBUG: The App lost your API Key. Please paste it here one last time:") || "";
-        if (manualKey) {
-            currentKey = manualKey;
-            localStorage.setItem("manga_api_key", manualKey);
-            setApiKey(manualKey);
-        } else {
-            alert("Cannot generate without a key!");
-            return;
-        }
-    }
-
-    alert(`Debug: Sending Key (Length: ${currentKey.length})`); // Temporary Debug Alert
-
     setIsLoading(true);
     setScript(null);
     setCharacterSheet(null);
     setPanelImages({});
+    setProjectId(null);
     setCurrentStyle(artStyle);
 
     try {
       let finalPrompt = prompt;
 
-      // 1. Enhance Prompt (if requested)
       if (enhance) {
         const enhanceRes = await fetch("/api/enhance-prompt", {
            method: "POST",
-           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${currentKey}` },
+           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
            body: JSON.stringify({ prompt }),
         });
         if (enhanceRes.ok) {
@@ -149,39 +159,33 @@ export default function Home() {
         }
       }
 
-      // 2. Generate Script
       const scriptRes = await fetch("/api/generate/script", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${currentKey}` 
+          "Authorization": `Bearer ${apiKey}` 
         },
         body: JSON.stringify({ prompt: finalPrompt }),
       });
-      if (!scriptRes.ok) {
-        const err = await scriptRes.json();
-        throw new Error(err.detail || "Failed to generate script");
-      }
+      if (!scriptRes.ok) throw new Error("Failed to generate script");
       const scriptData = await scriptRes.json();
       setScript(scriptData);
       
-      updateUsage('scripts');
-
-      // 3. Generate Characters
       const charRes = await fetch("/api/generate/characters", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${currentKey}` 
+          "Authorization": `Bearer ${apiKey}` 
         },
         body: JSON.stringify({ prompt: finalPrompt }),
       });
-      if (!charRes.ok) {
-        const err = await charRes.json();
-        throw new Error(err.detail || "Failed to generate characters");
+      if (charRes.ok) {
+         const charData = await charRes.json();
+         if (!scriptData.characters) {
+             setScript({ ...scriptData, characters: charData.characters });
+         }
+         setCharacterSheet(charData);
       }
-      const charData = await charRes.json();
-      setCharacterSheet(charData);
 
     } catch (error: any) {
       console.error(error);
@@ -192,51 +196,56 @@ export default function Home() {
   };
 
   const handleGenerateImage = async (panelId: number, style: "preview" | "final") => {
-    // Safety Limit Check - Images
-    if (!isPremium && usageStats.images >= 50) {
-      alert("Daily Image Limit Reached (Free Tier). This protects your API key from overuse.");
-      return;
-    }
-
     if (!script) return;
     const panel = script.panels.find((p: any) => p.id === panelId);
     if (!panel) return;
-
-    // FREEMIUM LOGIC: Show Ad if not premium
-    if (!isPremium) {
-      // Mock Ad Delay
-      await new Promise(resolve => setTimeout(resolve, 1500)); 
+    
+    const charContext: Record<string, string> = {};
+    if (script.characters) {
+       script.characters.forEach((c: any) => {
+          charContext[c.name] = `${c.appearance} (${c.personality})`;
+       });
     }
 
-    const currentKey = apiKey || localStorage.getItem("manga_api_key") || "";
     setIsGeneratingImage(prev => ({ ...prev, [panelId]: true }));
     try {
       const response = await fetch("/api/generate/image", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${currentKey}` 
+          "Authorization": `Bearer ${apiKey}` 
         },
         body: JSON.stringify({
           panel_id: panelId,
           description: panel.description,
           characters: panel.characters,
           style: style,
-          art_style: currentStyle
+          art_style: currentStyle,
+          character_profiles: charContext,
+          hf_token: hfToken
         }),
       });
 
       if (!response.ok) throw new Error("Failed");
       const data = await response.json();
       setPanelImages(prev => ({ ...prev, [panelId]: data.image_url }));
-      updateUsage('images');
+
+      // Update Quota
+      if (data.rate_limit_remaining !== undefined) {
+         setQuota({
+            remaining: data.rate_limit_remaining,
+            reset: data.rate_limit_reset,
+            total: data.rate_limit_total
+         });
+      }
+      
     } catch (error) {
       alert("Image generation failed");
     } finally {
       setIsGeneratingImage(prev => ({ ...prev, [panelId]: false }));
     }
   };
-
+  
   const handlePanelUpdate = (panelId: number, newDescription: string) => {
     if (!script) return;
     const updatedPanels = script.panels.map((p: any) => 
@@ -246,58 +255,77 @@ export default function Home() {
   };
 
   if (!isLoggedIn) {
-    return <LoginScreen onLogin={handleLogin} />;
+    return <LoginScreen onLogin={(name, key, email) => handleLogin(name, key, email)} />;
   }
 
   return (
     <AppShell activeTab={activeTab} onTabChange={setActiveTab}>
       
+      {showLettering && script && (
+         <ChapterEditor 
+            panels={script.panels} 
+            images={panelImages} 
+            onClose={() => setShowLettering(false)} 
+         />
+      )}
+
       {activeTab === 'profile' && (
-        <ProfileScreen 
-          userName={userName} 
-          isPremium={isPremium} 
-          onLogout={handleLogout} 
-          onUpgrade={handleUpgrade}
-          usageStats={usageStats}
+        <ProfileSettings 
+           name={userName} 
+           email={userEmail} 
+           apiKey={apiKey}
+           setApiKey={setApiKey}
+           hfToken={hfToken}
+           setHfToken={handleUpdateHfToken} 
+           onLogout={handleLogout} 
         />
       )}
 
       {activeTab === 'library' && (
-        <div className="flex flex-col items-center justify-center h-full text-neutral-500 gap-4 mt-20">
-          <div className="p-4 bg-white/5 rounded-full">
-            <span className="text-4xl">📚</span>
-          </div>
-          <p>Your library is empty</p>
-        </div>
+        <LibraryView onLoadProject={handleLoadProject} />
       )}
 
       {activeTab === 'create' && (
         <div className="p-4 space-y-8 pb-24">
-          {/* Header */}
-          <div className="pt-8 pb-4">
-            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
-              Create Manga
-            </h1>
-            <p className="text-neutral-400 text-sm mt-1">
-              {script ? "Editing your story" : "What story do you want to tell?"}
-            </p>
-          </div>
-
           {!script ? (
-            <StoryInput onSubmit={handleGenerate} isLoading={isLoading} />
+             <>
+              <div className="pt-8 pb-4 text-center">
+                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Create New Story</h1>
+                 <p className="text-gray-500 dark:text-gray-400">Describe your idea, and AI will write and draw it.</p>
+              </div>
+              <StoryInput onSubmit={handleGenerate} isLoading={isLoading} />
+             </>
           ) : (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {characterSheet && <CharacterViewer characterSheet={characterSheet} />}
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                 <div className="bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full text-xs text-purple-300 whitespace-nowrap">
-                   Script Generated
+              {/* Toolbar */}
+              <div className="sticky top-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-200 dark:border-zinc-800 -mx-4 px-4 py-3 flex justify-between items-center">
+                 <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[150px]">
+                       {script.title || "Untitled Story"}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium">
+                       {currentStyle}
+                    </span>
                  </div>
-                 <div className="bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full text-xs text-blue-300 whitespace-nowrap">
-                   Style: {currentStyle.toUpperCase()}
+                 <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => setShowLettering(true)}
+                      className="bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center gap-2"
+                    >
+                      <FiPenTool /> Lettering
+                    </button>
+                    <button 
+                      onClick={handleSaveProject}
+                      className="bg-black dark:bg-white text-white dark:text-black px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:opacity-80 transition-opacity flex items-center gap-2"
+                    >
+                      <FiSave /> Save
+                    </button>
                  </div>
               </div>
 
+              {/* Viewers */}
+              {characterSheet && <CharacterViewer characterSheet={characterSheet} />}
               <ScriptViewer script={script} />
               
               <MangaPageViewer 
@@ -306,14 +334,18 @@ export default function Home() {
                 onGenerateImage={handleGenerateImage}
                 onPanelUpdate={handlePanelUpdate}
                 isGenerating={isGeneratingImage}
+                // hfToken is not needed by Viewer, only by Parent to pass to API
+                quota={quota}
               />
               
-              <button 
-                onClick={() => setScript(null)}
-                className="w-full py-4 text-neutral-500 text-sm hover:text-white transition-colors"
-              >
-                Start New Story
-              </button>
+              <div className="pt-8 border-t border-gray-100 dark:border-zinc-800">
+                <button 
+                  onClick={() => { setScript(null); setProjectId(null); }}
+                  className="w-full py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-colors text-sm font-medium"
+                >
+                  Discard & Start New
+                </button>
+              </div>
             </div>
           )}
         </div>

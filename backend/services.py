@@ -7,7 +7,9 @@ import os
 import re
 import httpx
 from huggingface_hub import AsyncInferenceClient
+from typing import Dict, Optional, List
 from PIL import Image
+import io
 
 class ScriptGenerator:
     def __init__(self):
@@ -65,9 +67,13 @@ class ScriptGenerator:
                     "dialogue": "Character dialogue (or null if none)",
                     "characters": ["Char1", "Char2"]
                 }
+            ],
+            "characters": [
+                 { "name": "Char1", "description": "Role", "personality": "Traits", "appearance": "Visual description" }
             ]
         }
         """
+        # Note: Added "characters" field to system prompt so we get them in one shot for consistency!
         
         try:
             response = await model.generate_content_async(
@@ -90,6 +96,11 @@ class ScriptGenerator:
         
         system_prompt = """
         Create detailed character profiles for a manga based on this story idea.
+        CRITICAL INSTRUCTION: Ensure characters are VISUALLY DISTINCT. 
+        - Give them different hair colors, eye shapes, and clothing styles. 
+        - Vary their heights and silhouettes (e.g. one tall/thin, one short/stocky).
+        - NOT everyone should look like a standard anime protagonist.
+        
         Return ONLY valid JSON with this structure:
         {
             "characters": [
@@ -97,7 +108,7 @@ class ScriptGenerator:
                     "name": "Name",
                     "description": "Short role description",
                     "personality": "Personality traits",
-                    "appearance": "Visual description"
+                    "appearance": "Visual description (Focus on: Hair Color, Hairstyle, Distinctive Clothing, Accessories)"
                 }
             ]
         }
@@ -136,14 +147,24 @@ class ScriptGenerator:
             print(f"Error enhancing prompt: {e}")
             return prompt  # Fallback to original
 
-    async def generate_image(self, panel_id: int, description: str, style: str, art_style: str, api_key: str) -> ImageResponse:
-        """Generate panel images using Hugging Face (SDXL)"""
+    async def generate_image(
+        self, 
+        panel_id: int, 
+        description: str, 
+        style: str, 
+        art_style: str, 
+        api_key: str, 
+        character_profiles: Optional[Dict[str, str]] = None,
+        panel_characters: Optional[List[str]] = None,
+        hf_token: Optional[str] = None
+    ) -> ImageResponse:
+        """Generate panel images using Hugging Face Inference API"""
         
-        # NOTE: For this architecture, we use the Server's HF Token
-        # You must set HUGGING_FACE_TOKEN in backend/.env
-        hf_token = os.getenv("HUGGING_FACE_TOKEN")
-        if not hf_token:
-            print("Error: HUGGING_FACE_TOKEN not set in backend environment.")
+        # 1. Token Usage Strategy: User > Server > None
+        token = hf_token or os.getenv("HUGGING_FACE_TOKEN")
+        
+        if not token:
+            print("Error: No HF Token provided (User or Server).")
             return ImageResponse(
                 panel_id=panel_id,
                 image_url="https://via.placeholder.com/400x600?text=Missing+HF+Token",
@@ -163,53 +184,107 @@ class ScriptGenerator:
         
         selected_style_prompt = style_prompts.get(art_style.lower(), style_prompts["manga"])
 
-        # Prompt Engineering for SDXL
-        # SDXL likes comma separated keywords
-        image_prompt = f"{selected_style_prompt}, {description}, monochromatic, manga page, high quality, masterpiece, 4k"
-        
-        negative_prompt = "color, realistic photo, 3d render, bad anatomy, bad hands, text, watermark, blurry, low quality"
+        # Contextual Prompting Logic
+        character_context = ""
+        if character_profiles:
+            relevant_descriptions = []
+            def normalize(n): return n.lower().strip()
+            target_chars = panel_characters if panel_characters else character_profiles.keys()
+            
+            for char_name in target_chars:
+                matched_desc = None
+                if char_name in character_profiles:
+                    matched_desc = character_profiles[char_name]
+                else:
+                    for key, desc in character_profiles.items():
+                        if normalize(key) == normalize(char_name):
+                            matched_desc = desc
+                            break
+                            
+                if matched_desc:
+                    relevant_descriptions.append(f"{char_name}: {matched_desc}")
+            
+            if relevant_descriptions:
+                character_context = "Featured Characters: " + "; ".join(relevant_descriptions)
+            if len(character_context) > 400:
+                character_context = character_context[:400] + "..."
 
-        print(f"Generating Image with HF (SDXL)... Panel {panel_id}")
+        image_prompt = f"{selected_style_prompt}. {character_context}. {description}, monochromatic, manga page, high quality, masterpiece, 4k"
+        
+        print(f"Generating Image for Panel {panel_id} [Token Source: {'User' if hf_token else 'Server'}]")
+        print(f"  > Prompt: {image_prompt}")
+        
+        negative_prompt = "color, realistic photo, 3d render, bad anatomy, bad hands, text, watermark, blurry, low quality, extra limbs"
+
+        # Direct HTTP usage to capture headers
+        API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
+        headers = {"Authorization": f"Bearer {token}"}
+        payload = {
+            "inputs": image_prompt, 
+            "parameters": {"negative_prompt": negative_prompt}
+        }
 
         try:
-            print(f"Connecting to HF Hub as Async Client...")
-            client = AsyncInferenceClient(
-                model="stabilityai/stable-diffusion-xl-base-1.0", 
-                token=hf_token
-            )
-            
-            # Generate Image (Async)
-            image = await client.text_to_image(
-                image_prompt,
-                negative_prompt=negative_prompt
-            )
-            
-            # Save locally
-            filename = f"panel_{panel_id}_{hash(description)}.png"
-            
-            # Ensure directory exists (Robust fix)
-            os.makedirs("static/images", exist_ok=True)
-            
-            filepath = os.path.join("static/images", filename)
-            abs_path = os.path.abspath(filepath)
-            print(f"Saving image to: {abs_path}")
-            
-            image.save(filepath)
-            
-            # Return URL
-            image_url = f"http://localhost:8000/static/images/{filename}"
-            
-            return ImageResponse(
-                panel_id=panel_id,
-                image_url=image_url,
-                status="completed"
-            )
-            
+            async with httpx.AsyncClient() as client:
+                response = await client.post(API_URL, headers=headers, json=payload, timeout=60.0)
+                
+                # Check for Quota/Rate Limit Headers
+                # x-ratelimit-remaining: The number of requests left for the time window
+                # x-ratelimit-reset: The remaining window before the rate limit resets, in seconds
+                # x-ratelimit-limit: The rate limit ceiling for that given timestamp
+                
+                rl_remaining = response.headers.get("x-ratelimit-remaining")
+                rl_reset = response.headers.get("x-ratelimit-reset")
+                rl_total = response.headers.get("x-ratelimit-limit")
+                
+                stats = {
+                    "rate_limit_remaining": int(rl_remaining) if rl_remaining else None,
+                    "rate_limit_reset": int(rl_reset) if rl_reset else None,
+                    "rate_limit_total": int(rl_total) if rl_total else None,
+                }
+                
+                if response.status_code == 200:
+                    image_bytes = response.content
+                    image = Image.open(io.BytesIO(image_bytes))
+                    
+                    filename = f"panel_{panel_id}_{hash(description)}.png"
+                    os.makedirs("static/images", exist_ok=True)
+                    filepath = os.path.join("static/images", filename)
+                    image.save(filepath)
+                    
+                    image_url = f"http://localhost:8000/static/images/{filename}"
+                    
+                    return ImageResponse(
+                        panel_id=panel_id,
+                        image_url=image_url,
+                        status="completed",
+                        **stats
+                    )
+                else:
+                    error_msg = response.text
+                    print(f"HF API Error: {response.status_code} - {error_msg}")
+                    
+                    if response.status_code == 429 or response.status_code == 402:
+                         # Rate Limited
+                         return ImageResponse(
+                             panel_id=panel_id,
+                             image_url="https://via.placeholder.com/400x600?text=Rate+Limit+Exceeded",
+                             status="failed",
+                             **stats
+                         )
+                    
+                    return ImageResponse(
+                        panel_id=panel_id,
+                        image_url="https://via.placeholder.com/400x600?text=Generation+Error",
+                        status="failed",
+                         **stats
+                    )
+
         except Exception as e:
             print(f"Error generating image: {e}")
             return ImageResponse(
                 panel_id=panel_id,
-                image_url="https://via.placeholder.com/400x600?text=Generation+Failed",
+                image_url="https://via.placeholder.com/400x600?text=System+Error",
                 status="failed"
             )
 

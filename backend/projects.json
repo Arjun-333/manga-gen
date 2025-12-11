@@ -1,0 +1,350 @@
+{
+  "61ddf560-4f5d-46d9-847a-50d5ffe467f6": {
+    "id": "61ddf560-4f5d-46d9-847a-50d5ffe467f6",
+    "title": "Kage: Shadow Weaver's Redemption",
+    "created_at": "2025-12-11T17:20:56.168023",
+    "updated_at": "2025-12-11T17:20:56.168070",
+    "script": {
+      "title": "Kage: Shadow Weaver's Redemption",
+      "panels": [
+        {
+          "id": 1,
+          "description": "OPENING PANEL: A wide shot of a serene mountain village nestled in a valley, bathed in soft morning light. Smoke gently curls from thatched roofs. In the foreground, Kage, in simple peasant attire, is meticulously tending a small patch of herbs, his back to the viewer. His hands are calloused.",
+          "dialogue": "Kage (internal, quiet): Another day of peace. Another day to remember\u2026 and atone.",
+          "characters": [
+            "Kage"
+          ]
+        },
+        {
+          "id": 2,
+          "description": "CLOSE-UP on Kage's face. His eyes, sharp yet distant, gaze at the mountains. A subtle scar runs near his temple. He hears a faint, unsettling sound.",
+          "dialogue": "Kage (internal): That sound\u2026 it's been too long.",
+          "characters": [
+            "Kage"
+          ]
+        },
+        {
+          "id": 3,
+          "description": "A sudden, dramatic shift. Shadows descend rapidly from the mountain peaks, fluid and menacing. Villagers below scatter in terror, pointing upwards. A faint, dark symbol, a stylized fanged wolf, is visible on one of the approaching figures.",
+          "dialogue": "Villager A (shouting): Intruder! Shadows!",
+          "characters": [
+            "Villager A",
+            "Shadowfang Clan Members"
+          ]
+        },
+        {
+          "id": 4,
+          "description": "Kage is now standing, his posture rigid. His hand instinctively goes to his side, where a hidden blade would be. His expression hardens, a mixture of recognition and grim determination. The village shrine, ancient and weathered, is visible in the background.",
+          "dialogue": "Kage (internal, gritting teeth): The Shadowfang Clan\u2026 they found it.",
+          "characters": [
+            "Kage"
+          ]
+        },
+        {
+          "id": 5,
+          "description": "The clan's leader, Kazuo, Kage's former sensei, stands before the village elder. Kazuo is an imposing figure in ornate dark shinobi armor, his face stern. His katana is sheathed but his hand rests on the hilt. Behind him, several masked clan members stand guard. The elder is visibly shaking.",
+          "dialogue": "Kazuo (coldly): Surrender the Heartstone of the Mountain, old man. Or this peace will be your last.",
+          "characters": [
+            "Kazuo",
+            "Village Elder",
+            "Shadowfang Clan Members"
+          ]
+        },
+        {
+          "id": 6,
+          "description": "A montage: Kage's hands swiftly donning his dark shinobi garb. First, a black tabi, then the dark suit, finally pulling a mask over his lower face, leaving only his intense eyes visible. His movements are precise, practiced, deadly.",
+          "dialogue": "Kage (internal, resolute): I swore to protect them. This time, my blades will save, not condemn.",
+          "characters": [
+            "Kage"
+          ]
+        },
+        {
+          "id": 7,
+          "description": "Kage appears like a blur, intercepting a clan member who was about to attack a fleeing villager. He disarms the attacker with fluid grace, his short blades glinting in the fading light, without causing fatal injury. The villager gasps.",
+          "dialogue": "Kage: Get to safety! I'll hold them off!",
+          "characters": [
+            "Kage",
+            "Shadowfang Clan Member",
+            "Villager B"
+          ]
+        },
+        {
+          "id": 8,
+          "description": "Kage leaps onto a rooftop, silhouetted against the rising moon. Below him, the Shadowfang Clan members are regrouping, frustrated. Kazuo looks up, his eyes narrowing in recognition.",
+          "dialogue": "Kazuo: Kage\u2026 So you choose to defy your heritage?",
+          "characters": [
+            "Kage",
+            "Kazuo"
+          ]
+        },
+        {
+          "id": 9,
+          "description": "CLIMAX PANEL: Kage and Kazuo face each other on the moonlit shrine rooftop. The wind whips their cloaks. Kazuo draws his long katana, its steel glinting. Kage holds his twin short blades defensively, but his posture shows a newfound strength.",
+          "dialogue": "Kage: My heritage is not bloodshed, Sensei. It's protection.",
+          "characters": [
+            "Kage",
+            "Kazuo"
+          ]
+        },
+        {
+          "id": 10,
+          "description": "Kage unleashes his 'Shadow Weave' technique. He throws a series of smoke bombs, creating thick, swirling clouds. He moves through the smoke, a nearly invisible specter, disarming multiple clan members with lightning-fast, non-lethal strikes. The clan members stumble, confused.",
+          "dialogue": "Shadowfang Clan Member A: He's too fast! We can't see him!",
+          "characters": [
+            "Kage",
+            "Shadowfang Clan Members"
+          ]
+        },
+        {
+          "id": 11,
+          "description": "Kazuo lunges through the smoke, predicting Kage's movements with an angry roar. Their blades clash in a flurry of sparks, Kage deflecting and redirecting Kazuo's powerful blows with precise, defensive maneuvers.",
+          "dialogue": "Kazuo: This weakness you call 'protection' will be your end!",
+          "characters": [
+            "Kage",
+            "Kazuo"
+          ]
+        },
+        {
+          "id": 12,
+          "description": "Kage uses Kazuo's momentum against him, a sudden pivot and a well-placed kick to the hilt disarming his former sensei. Kazuo's katana flies into the air, landing far from him. Kage holds one of his short blades at Kazuo's throat, but his eyes show no killing intent.",
+          "dialogue": "Kage: True strength isn't in taking life, Sensei. It's in safeguarding it.",
+          "characters": [
+            "Kage",
+            "Kazuo"
+          ]
+        },
+        {
+          "id": 13,
+          "description": "Kazuo, defeated and disarmed, stares at Kage, a mixture of rage and reluctant respect in his eyes. Kage sheathes his blades, offering a hand to his fallen sensei. The remaining clan members, seeing their leader defeated without bloodshed, hesitate.",
+          "dialogue": "Kazuo (grudgingly): You\u2026 you have changed, Kage.",
+          "characters": [
+            "Kage",
+            "Kazuo",
+            "Shadowfang Clan Members"
+          ]
+        },
+        {
+          "id": 14,
+          "description": "Kazuo, with a dark scowl, gives a signal. The remaining Shadowfang Clan members retrieve their disarmed comrades and retreat back into the shadows of the mountains, disappearing as quickly as they came. Kage watches them go, standing guard over the village.",
+          "dialogue": "Kage (internal): Let them retreat. For now.",
+          "characters": [
+            "Kage",
+            "Kazuo",
+            "Shadowfang Clan Members"
+          ]
+        },
+        {
+          "id": 15,
+          "description": "FINAL PANEL: Morning returns to the village. Kage, still in his shinobi garb but with his mask lowered, stands on the rooftop of the shrine, looking out at the waking village. Villagers emerge, looking up at him with awe and gratitude. A gentle smile, unseen by the villagers, plays on his lips. The sun rises, painting the sky in soft hues.",
+          "dialogue": "Kage (internal, peaceful): This\u2026 this is my true ninja way.",
+          "characters": [
+            "Kage",
+            "Villagers"
+          ]
+        }
+      ],
+      "characters": [
+        {
+          "name": "Kage",
+          "description": "A disillusioned master ninja who abandoned his clan's violent path for a quiet life. He seeks atonement for his past and finds purpose in protecting the innocent.",
+          "personality": "Stoic, burdened by past guilt, compassionate, fiercely protective, strategic, and resolute in his new path.",
+          "appearance": "Initially appears in simple, worn peasant clothes. When in his shinobi attire, he wears dark, streamlined black garb, a face-covering mask that reveals only his intense, watchful eyes, and carries twin short blades."
+        },
+        {
+          "name": "Kazuo",
+          "description": "Kage's former sensei and the current ruthless leader of the 'Shadowfang Clan.' He is a staunch traditionalist who believes in the clan's ancient, violent doctrines and views Kage's compassion as weakness.",
+          "personality": "Ruthless, unyielding, traditionalist, powerful, driven by a rigid code of honor that prioritizes the clan's might and legacy.",
+          "appearance": "An imposing figure in ornate dark shinobi armor, often with a high collar or partial mask obscuring his face. Wields a long, curved katana and carries himself with an air of authority and menace."
+        },
+        {
+          "name": "Village Elder",
+          "description": "A wise and kind leader of the mountain village, entrusted with the secret of the ancient artifact.",
+          "personality": "Fearful but resilient, deeply cares for his people.",
+          "appearance": "Old, with a long white beard, wearing traditional village robes."
+        },
+        {
+          "name": "Shadowfang Clan Members",
+          "description": "The ruthless followers of Kazuo, highly trained ninja dedicated to their clan's violent objectives.",
+          "personality": "Loyal, disciplined, aggressive, unhesitating in their orders.",
+          "appearance": "Wear dark, uniform shinobi garb with masks often featuring stylized fangs or wolf motifs."
+        }
+      ]
+    },
+    "images": {
+      "1": "http://localhost:8000/static/images/panel_1_-5898852848994562108.png",
+      "2": "http://localhost:8000/static/images/panel_2_7513931334023073348.png",
+      "3": "http://localhost:8000/static/images/panel_3_-4314357942932845247.png",
+      "4": "http://localhost:8000/static/images/panel_4_-3508401469478121814.png",
+      "5": "http://localhost:8000/static/images/panel_5_-5100280529572073204.png",
+      "6": "http://localhost:8000/static/images/panel_6_7569338454490486063.png",
+      "7": "http://localhost:8000/static/images/panel_7_728437072436387827.png"
+    },
+    "art_style": "manga"
+  },
+  "0f26c982-df5a-4e3d-a739-5d92d00f4e95": {
+    "id": "0f26c982-df5a-4e3d-a739-5d92d00f4e95",
+    "title": "The Last Blade of Eden",
+    "created_at": "2025-12-11T17:25:16.349237",
+    "updated_at": "2025-12-11T17:25:16.349289",
+    "script": {
+      "title": "The Last Blade of Eden",
+      "panels": [
+        {
+          "id": 1,
+          "description": "A wide shot establishes a crumbling, vine-choked spire piercing a bleak, metallic sky. Below, amidst the rubble of a lost civilization, Kael, a grizzled swordsman, stands sentinel, his katana a defiant glint.",
+          "dialogue": null,
+          "characters": [
+            "Kael"
+          ]
+        },
+        {
+          "id": 2,
+          "description": "Close-up on Kael's weathered face. His eyes, though tired, hold a sharp, focused intensity, scanning the desolate horizon. A heavy silence pervades the ruined landscape.",
+          "dialogue": null,
+          "characters": [
+            "Kael"
+          ]
+        },
+        {
+          "id": 3,
+          "description": "A massive, chrome automaton, 'Iron Judge,' descends from the sky, its form reflecting the metallic gloom. Luminous red optics burn menacingly, and its plasma blades begin to whir, casting an eerie glow.",
+          "dialogue": null,
+          "characters": [
+            "Iron Judge"
+          ]
+        },
+        {
+          "id": 4,
+          "description": "Kael's expression hardens. His hand instinctively grips the hilt of his katana, a silent vow passing his lips as the Iron Judge's shadow engulfs the spire.",
+          "dialogue": null,
+          "characters": [
+            "Kael"
+          ]
+        },
+        {
+          "id": 5,
+          "description": "The Iron Judge lands with a resonant THUD, its heavy frame shaking the ground. It moves with a calculated, unnerving grace, plasma blades humming with destructive energy.",
+          "dialogue": null,
+          "characters": [
+            "Iron Judge"
+          ]
+        },
+        {
+          "id": 6,
+          "description": "FIRST CLASH: Kael lunges, a blur of motion fueled by ancient kendo. His steel katana meets the Iron Judge's plasma blade, sending a spectacular shower of bright orange sparks across the panel.",
+          "dialogue": null,
+          "characters": [
+            "Kael",
+            "Iron Judge"
+          ]
+        },
+        {
+          "id": 7,
+          "description": "Kael dances through a flurry of plasma slashes, his movements fluid and precise. He narrowly parries a blow that would have cleaved him in two. The spire groans under the concussive impacts.",
+          "dialogue": null,
+          "characters": [
+            "Kael",
+            "Iron Judge"
+          ]
+        },
+        {
+          "id": 8,
+          "description": "Close-up on Kael's determined eyes. For a fleeting moment, a vibrant, green forest filled with light overlays his vision, a memory of a lost Earth fueling his defiance.",
+          "dialogue": null,
+          "characters": [
+            "Kael"
+          ]
+        },
+        {
+          "id": 9,
+          "description": "Iron Judge's red optics zoom in on Kael, displaying complex data streams. It analyzes Kael's kendo patterns, adapting its attack algorithms, seeking out his weaknesses with cold, unfeeling logic.",
+          "dialogue": null,
+          "characters": [
+            "Iron Judge"
+          ]
+        },
+        {
+          "id": 10,
+          "description": "Kael is pushed back, cornered against a crumbling spire wall. The Iron Judge attacks relentlessly, its calculated blows aimed with surgical precision at Kael's exposed joints and fatigue points.",
+          "dialogue": null,
+          "characters": [
+            "Kael",
+            "Iron Judge"
+          ]
+        },
+        {
+          "id": 11,
+          "description": "Kael takes a deep, ragged breath, his muscles screaming. His face is grim, but an impossible resolve hardens his features. He spots a tiny, almost imperceptible flaw in the Iron Judge's attack pattern.",
+          "dialogue": null,
+          "characters": [
+            "Kael"
+          ]
+        },
+        {
+          "id": 12,
+          "description": "THE IMPOSSIBLE STRIKE: Kael ducks under a sweeping plasma blade, then uses the automaton's momentum to propel himself upwards. His katana becomes a silver streak, aimed directly at Iron Judge's glowing central core.",
+          "dialogue": null,
+          "characters": [
+            "Kael",
+            "Iron Judge"
+          ]
+        },
+        {
+          "id": 13,
+          "description": "A deafening CRACK echoes through the spire as Kael's katana pierces the Iron Judge's chrome armor. Red light flickers violently from the automaton's core, then begins to dim.",
+          "dialogue": null,
+          "characters": [
+            "Kael",
+            "Iron Judge"
+          ]
+        },
+        {
+          "id": 14,
+          "description": "The Iron Judge freezes, then slowly begins to spark and crackle, its red optics fading to black. With a final metallic shriek, it topples forward, crashing heavily to the ground.",
+          "dialogue": null,
+          "characters": [
+            "Iron Judge"
+          ]
+        },
+        {
+          "id": 15,
+          "description": "Kael lands heavily amidst the debris, panting, katana still gripped in his shaking hand. The spire is scarred but stands. Through a partially collapsed wall, the final Seed Vault is visible, secure.",
+          "dialogue": null,
+          "characters": [
+            "Kael"
+          ]
+        },
+        {
+          "id": 16,
+          "description": "FINAL SHOT: Kael stands over the deactivated Iron Judge, then looks out at the desolate landscape, a mix of exhaustion and weary hope on his face. The last blade of Eden still gleams, a testament to humanity's spirit.",
+          "dialogue": null,
+          "characters": [
+            "Kael"
+          ]
+        }
+      ],
+      "characters": [
+        {
+          "name": "Kael",
+          "description": "Humanity's last hope, guardian of the Seed Vault.",
+          "personality": "Grizzled, resilient, determined, defiant, carries the weight of a lost world, deeply skilled in ancient kendo.",
+          "appearance": "Weathered face with keen, world-weary eyes. Wears practical, slightly worn combat gear suitable for survival. Carries a finely crafted katana as his primary weapon."
+        },
+        {
+          "name": "Iron Judge",
+          "description": "A metallic titan, a chrome automaton tasked with sterilizing the spire and its contents.",
+          "personality": "Devoid of emotion, highly calculated, precise, relentless, adaptive, driven solely by its programmed mission.",
+          "appearance": "Imposing chrome exterior, highly polished and reflective. Features luminous red optics that glow menacingly. Equipped with whirring plasma blades integrated into its forearms."
+        }
+      ]
+    },
+    "images": {
+      "1": "http://localhost:8000/static/images/panel_1_3037818958973836244.png",
+      "2": "http://localhost:8000/static/images/panel_2_3389497290191801759.png",
+      "3": "http://localhost:8000/static/images/panel_3_-1042598604555074234.png",
+      "4": "http://localhost:8000/static/images/panel_4_-2382862403456800300.png",
+      "5": "http://localhost:8000/static/images/panel_5_57803730434652732.png"
+    },
+    "art_style": "manga"
+  }
+}

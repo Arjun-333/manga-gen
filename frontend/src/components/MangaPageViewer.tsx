@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { useState } from "react";
+import { FiRefreshCw, FiEdit2, FiCheck, FiInfo, FiActivity, FiClock, FiAlertCircle } from "react-icons/fi";
 
 interface Panel {
   id: number;
@@ -14,69 +15,118 @@ interface MangaPageViewerProps {
   onGenerateImage: (panelId: number, style: "preview" | "final") => void;
   isGenerating: Record<number, boolean>;
   onPanelUpdate?: (id: number, newDescription: string) => void;
+  // Quota Props
+  quota?: { remaining: number | null, reset: number | null, total: number | null };
 }
 
-export default function MangaPageViewer({ panels, images, onGenerateImage, isGenerating, onPanelUpdate }: MangaPageViewerProps) {
+export default function MangaPageViewer({ panels, images, onGenerateImage, isGenerating, onPanelUpdate, quota }: MangaPageViewerProps) {
   const [selectedStyle, setSelectedStyle] = useState<"preview" | "final">("preview");
+  const [editingPanelId, setEditingPanelId] = useState<number | null>(null);
+
+  const handleGenerate = (panelId: number) => {
+    onGenerateImage(panelId, selectedStyle);
+    setEditingPanelId(null);
+  };
+  
+  // Format Reset Time (seconds to MM:SS)
+  const formatTime = (seconds: number) => {
+     const m = Math.floor(seconds / 60);
+     const s = seconds % 60;
+     return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-8 pb-32">
+    <div className="w-full max-w-none mx-auto space-y-8 pb-32">
       
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 border-b border-gray-200 dark:border-zinc-800">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            Panel Generation
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">Review descriptions and generate visuals</p>
+      <div className="flex flex-col gap-6 py-4 border-b border-gray-200 dark:border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+           <div>
+             <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+               Panel Generation
+             </h2>
+             <p className="text-sm text-gray-500 mt-1">Review descriptions and generate visuals</p>
+           </div>
+   
+           {/* Professional Segmented Control */}
+           <div className="inline-flex bg-gray-100 dark:bg-zinc-800 p-1 rounded-lg">
+             <button
+               onClick={() => setSelectedStyle("preview")}
+               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                 selectedStyle === "preview"
+                   ? "bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white"
+                   : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-300"
+               }`}
+             >
+               Draft Mode
+             </button>
+             <button
+               onClick={() => setSelectedStyle("final")}
+               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                 selectedStyle === "final"
+                   ? "bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white"
+                   : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-300"
+               }`}
+             >
+               High Quality
+             </button>
+           </div>
         </div>
-
-        {/* Professional Segmented Control */}
-        <div className="inline-flex bg-gray-100 dark:bg-zinc-800 p-1 rounded-lg">
-          <button
-            onClick={() => setSelectedStyle("preview")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              selectedStyle === "preview"
-                ? "bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white"
-                : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-300"
-            }`}
-          >
-            Draft Mode
-          </button>
-          <button
-            onClick={() => setSelectedStyle("final")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              selectedStyle === "final"
-                ? "bg-white dark:bg-zinc-700 shadow-sm text-gray-900 dark:text-white"
-                : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-300"
-            }`}
-          >
-            High Quality
-          </button>
-        </div>
+        
+        {/* Quota Bar (Only shows if quota data is available) */}
+        {quota && quota.remaining !== null && (
+           <div className="flex items-center gap-4 py-2 px-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg text-sm">
+              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 font-medium">
+                 <FiActivity />
+                 <span>Usage Quota:</span>
+              </div>
+              <div className="flex items-center gap-4 text-gray-600 dark:text-gray-400">
+                 <span>
+                    <strong className={quota.remaining < 2 ? "text-red-500" : "text-gray-900 dark:text-gray-200"}>
+                       {quota.remaining}
+                    </strong> requests remaining
+                 </span>
+                 {quota.reset && (
+                    <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                       <FiClock /> Refills in {formatTime(quota.reset)}
+                    </span>
+                 )}
+              </div>
+           </div>
+        )}
       </div>
 
       {/* Panels List */}
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 align-top">
         {panels.map((panel, index) => (
           <div 
             key={panel.id} 
-            className="bg-white dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+            className="bg-white dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow group"
           >
             {/* Panel Header */}
             <div className="px-6 py-3 border-b border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50 flex justify-between items-center">
               <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                 Panel {index + 1}
               </span>
-              <span className="text-xs text-gray-400">
-                {images[panel.id] ? "Generated" : "Pending"}
-              </span>
+              <div className="flex items-center gap-2">
+                 {images[panel.id] && !editingPanelId && (
+                    <button 
+                       onClick={() => setEditingPanelId(panel.id)}
+                       className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                    >
+                       <FiEdit2 size={12} /> Edit Prompt
+                    </button>
+                 )}
+                 <span className={`text-xs ${images[panel.id] ? "text-green-500" : "text-gray-400"}`}>
+                   {images[panel.id] ? "Generated" : "Pending"}
+                 </span>
+              </div>
             </div>
 
             <div className="p-0">
-              {images[panel.id] ? (
+              {images[panel.id] && editingPanelId !== panel.id ? (
                 /* Generated Image - Clean View */
-                <div className="relative bg-gray-100 dark:bg-black">
+                <div className="relative bg-gray-100 dark:bg-black group">
                   {/* Aspect Ratio Container */}
                   <div className="relative w-full aspect-[3/4]">
                     <Image
@@ -86,6 +136,15 @@ export default function MangaPageViewer({ panels, images, onGenerateImage, isGen
                       className="object-contain"
                       unoptimized
                     />
+                     {/* Hover Overlay for Quick Actions */}
+                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                        <button 
+                           onClick={() => setEditingPanelId(panel.id)}
+                           className="bg-white text-black px-4 py-2 rounded-full font-medium text-sm flex items-center gap-2 hover:bg-gray-100 transition-colors"
+                        >
+                           <FiEdit2 /> Refine
+                        </button>
+                     </div>
                   </div>
                   
                   {panel.dialogue && (
@@ -95,19 +154,26 @@ export default function MangaPageViewer({ panels, images, onGenerateImage, isGen
                       </p>
                     </div>
                   )}
-
-                  {/* Re-generate Overlay (appears on hover) */}
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                     {/* Could add regenerate button here later */}
-                  </div>
                 </div>
               ) : (
                 /* Edit & Generate View */
                 <div className="p-6 space-y-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                      Visual Description
-                    </label>
+                    <div className="flex justify-between items-center">
+                       <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                         Visual Description
+                       </label>
+                       {/* Cancel Button if we have an image to go back to */}
+                       {images[panel.id] && (
+                          <button 
+                             onClick={() => setEditingPanelId(null)}
+                             className="text-xs text-gray-400 hover:text-gray-600"
+                          >
+                             Cancel
+                          </button>
+                       )}
+                    </div>
+                    
                     {onPanelUpdate ? (
                       <textarea 
                         value={panel.description}
@@ -124,7 +190,7 @@ export default function MangaPageViewer({ panels, images, onGenerateImage, isGen
                   
                   <div className="pt-2">
                     <button
-                      onClick={() => onGenerateImage(panel.id, selectedStyle)}
+                      onClick={() => handleGenerate(panel.id)}
                       disabled={isGenerating[panel.id]}
                       className={`w-full py-2.5 px-4 rounded-lg text-sm font-semibold text-white transition-all shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${
                         selectedStyle === "preview" 
@@ -134,14 +200,14 @@ export default function MangaPageViewer({ panels, images, onGenerateImage, isGen
                     >
                       {isGenerating[panel.id] ? (
                         <span className="flex items-center justify-center gap-2">
-                          <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
+                          <FiRefreshCw className="animate-spin" />
                           Processing...
                         </span>
                       ) : (
-                        `Generate Image (${selectedStyle === "preview" ? "Draft" : "HD"})`
+                        <span className="flex items-center justify-center gap-2">
+                           {images[panel.id] ? <FiRefreshCw /> : <FiCheck />}
+                           {images[panel.id] ? "Regenerate Image" : `Generate Image (${selectedStyle === "preview" ? "Draft" : "HD"})`}
+                        </span>
                       )}
                     </button>
                     <p className="text-center text-xs text-gray-400 mt-2">
