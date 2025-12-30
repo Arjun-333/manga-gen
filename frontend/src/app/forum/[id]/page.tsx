@@ -63,11 +63,8 @@ export default function PostDetailPage() {
       // or we can just navigate to main page and set active tab via URL params if implemented.
       // For now, let's just alert or log. Ideally we navigate to a viewer page.
       if (post?.attached_project_id) {
-          // This assumes the frontend can handle ?project_id or similar. 
-          // Since we use client-side state in AppShell, deep linking might not be fully set up.
-          // We'll show a simple "Open in Library" instruction.
-          alert(`Opening Project ID: ${post.attached_project_id}. Go to Library to view.`);
-          // Real implementations would link to /library/project/[id]
+          // Navigate to home and trigger project load via URL param
+          router.push(`/?openProject=${post.attached_project_id}`);
       }
   };
 

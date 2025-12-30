@@ -85,3 +85,15 @@ class ForumManager:
         data["posts"][post_id]["comments"].append(comment.model_dump())
         self._save_data(data)
         return comment
+
+    def like_post(self, post_id: str) -> Optional[int]:
+        data = self._load_data()
+        if post_id not in data["posts"]:
+            return None
+            
+        if "likes" not in data["posts"][post_id]:
+            data["posts"][post_id]["likes"] = 0
+            
+        data["posts"][post_id]["likes"] += 1
+        self._save_data(data)
+        return data["posts"][post_id]["likes"]

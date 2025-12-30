@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from 'next/navigation';
 import dynamic from "next/dynamic";
 import LoginScreen from "@/components/LoginScreen";
 import AppShell from "@/components/AppShell";
@@ -49,6 +50,10 @@ export default function Home() {
   // Generation Settings
   const [currentStyle, setCurrentStyle] = useState('manga');
 
+  // Inside component
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   useEffect(() => {
     // 1. Credentials
     const savedName = localStorage.getItem("manga_user_name");
@@ -63,7 +68,15 @@ export default function Home() {
       if (savedHfToken) setHfToken(savedHfToken);
       setIsLoggedIn(true);
     }
-  }, []);
+    
+    // 2. Check for project deep link
+    const openProjectId = searchParams.get('openProject');
+    if (openProjectId) {
+        handleLoadProject(openProjectId);
+        // Clear param so refresher doesn't re-trigger (optional)
+        router.replace('/', { scroll: false });
+    }
+  }, [searchParams]);
 
   const handleUpdateHfToken = (token: string) => {
      setHfToken(token);

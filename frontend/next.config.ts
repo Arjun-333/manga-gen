@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: "https://manga-gen-api.onrender.com/:path*",
+        destination: "http://127.0.0.1:8000/:path*",
       },
     ];
   },

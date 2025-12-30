@@ -140,6 +140,13 @@ async def add_comment(post_id: str, request: CreateCommentRequest):
         raise HTTPException(status_code=404, detail="Post not found")
     return comment
 
+@app.post("/forum/posts/{post_id}/like")
+async def like_post(post_id: str):
+    likes = forum.like_post(post_id)
+    if likes is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    return {"likes": likes}
+
 # --- Character Reference Sheet ---
 
 @app.post("/generate/character-sheet", response_model=ImageResponse)

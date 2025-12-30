@@ -8,6 +8,25 @@ import { API_BASE_URL } from '../config';
 // --- Components ---
 
 export const PostCard = ({ post, onClick }: { post: ForumPost; onClick: () => void }) => {
+  const [likes, setLikes] = useState(post.likes);
+  const [liked, setLiked] = useState(false);
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Don't open post
+    if (liked) return; // Prevent spam
+
+    setLiked(true);
+    setLikes(prev => prev + 1);
+    
+    try {
+       await axios.post(`${API_BASE_URL}/forum/posts/${post.id}/like`);
+    } catch (err) {
+       console.error("Failed to like", err);
+       setLikes(prev => prev - 1); // Revert
+       setLiked(false);
+    }
+  };
+
   return (
     <motion.div
       whileHover={{ y: -2 }}
@@ -34,9 +53,12 @@ export const PostCard = ({ post, onClick }: { post: ForumPost; onClick: () => vo
           </span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1 group-hover:text-red-500 transition-colors">
-            <Heart className="w-3 h-3" /> {post.likes}
-          </span>
+          <button 
+             onClick={handleLike}
+             className={`flex items-center gap-1 transition-colors ${liked ? 'text-red-500' : 'group-hover:text-red-500'}`}
+          >
+            <Heart className={`w-3 h-3 ${liked ? 'fill-current' : ''}`} /> {likes}
+          </button>
           <span className="flex items-center gap-1 group-hover:text-mn-teal transition-colors">
             <MessageSquare className="w-3 h-3" /> {post.comments?.length || 0}
           </span>
