@@ -147,6 +147,37 @@ class ScriptGenerator:
             print(f"Error enhancing prompt: {e}")
             return prompt  # Fallback to original
 
+    async def generate_character_sheet(
+        self,
+        name: str,
+        description: str,
+        art_style: str,
+        api_key: str,
+        features: List[str] = []
+    ) -> ImageResponse:
+        """Generate a detailed character reference sheet image"""
+        
+        # 1. Reuse generate_image logic but with specific prompt
+        # We simulate a "panel_id" for the filename
+        panel_id = 99999 
+        
+        feature_str = ", ".join(features) if features else "front view, side view, close up"
+        
+        prompt = f"Character Reference Sheet for {name}. {description}. {feature_str}. Character design, concept art, {art_style} style, white background, high quality, consistent character details"
+        
+        # We can reuse generate_image but we need to bypass some params or just call the HF API directly to avoid 'panel' specific logic constraints if any.
+        # However, generate_image is generic enough. Let's call it with specific params.
+        
+        return await self.generate_image(
+            panel_id=panel_id,
+            description=prompt,
+            style="character_sheet", # Internal style marker
+            art_style=art_style,
+            api_key=api_key,
+            hf_token=None # Use server token by default or passed one if we updated method signature
+        )
+
+
     async def generate_image(
         self, 
         panel_id: int, 

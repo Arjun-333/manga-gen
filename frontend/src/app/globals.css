@@ -1,8 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* NEW PALETTE: Neutral Dark + Vibrant Accents */
+  /* Re-mapping existing variable names to new palette for instant propagation */
+  
+  --color-brand-zinc-950: #09090b; /* Was Navy - Now Deepest Background */
+  --color-brand-zinc-900: #18181b; /* Was Blue - Now Card Surface */
+  --color-brand-violet: #7c3aed;   /* Was Teal - Now Primary Brand (Violet) */
+  --color-brand-rose: #e11d48;     /* New Accent */
+  --color-brand-offwhite: #f4f4f5; /* Zinc 100 */
+  --color-brand-black: #000000;
+
+  --background: var(--color-brand-zinc-950); /* Deep dark base */
+  --foreground: var(--color-brand-offwhite);
 }
 
 @theme inline {
@@ -10,17 +20,43 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  /* MAPPING: Old Names -> New Colors */
+  --color-mn-navy: var(--color-brand-zinc-950);   /* Base Background */
+  --color-mn-blue: var(--color-brand-zinc-900);   /* Card Surface */
+  --color-mn-teal: var(--color-brand-violet);     /* Primary Action (Violet) */
+  --color-mn-rose: var(--color-brand-rose);       /* Secondary Accent */
+  --color-mn-offwhite: var(--color-brand-offwhite);
+  --color-mn-black: var(--color-brand-black);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: var(--color-brand-navy);
+    --foreground: var(--color-brand-offwhite);
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar polish */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-brand-blue);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-teal);
 }

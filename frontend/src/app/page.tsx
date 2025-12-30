@@ -12,8 +12,10 @@ import CharacterViewer from "@/components/CharacterViewer";
 import MangaPageViewer from "@/components/MangaPageViewer";
 import WelcomeTutorial from "@/components/WelcomeTutorial";
 import InterstitialAd from "@/components/InterstitialAd";
+import ForumPage from "./forum/page";
 import { FiPenTool, FiSave } from "react-icons/fi";
 import { API_BASE_URL } from "../config";
+import { ScriptSkeleton } from "@/components/Skeletons";
 
 const ChapterEditor = dynamic(() => import("@/components/ChapterEditor"), { ssr: false });
 
@@ -324,6 +326,14 @@ export default function Home() {
     setScript({ ...script, panels: updatedPanels });
   };
 
+  // Forum State
+  const [forumInitialProjectId, setForumInitialProjectId] = useState<string | undefined>(undefined);
+
+  const handlePostToForum = (projectId: string) => {
+      setForumInitialProjectId(projectId);
+      setActiveTab('forum');
+  };
+
   if (!isLoggedIn) {
     return <LoginScreen onLogin={(name, key, email) => handleLogin(name, key, email)} />;
   }
@@ -352,19 +362,27 @@ export default function Home() {
       )}
 
       {activeTab === 'library' && (
-        <LibraryView onLoadProject={handleLoadProject} />
+        <LibraryView onLoadProject={handleLoadProject} onPostToForum={handlePostToForum} />
+      )}
+
+      {activeTab === 'forum' && (
+          <ForumPage key={forumInitialProjectId} initialProjectId={forumInitialProjectId} />
       )}
 
       {activeTab === 'create' && (
         <div className="p-4 space-y-8 pb-24">
           {!script ? (
-             <>
-              <div className="pt-8 pb-4 text-center">
-                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Create New Story</h1>
-                 <p className="text-gray-500 dark:text-gray-400">Describe your idea, and AI will write and draw it.</p>
-              </div>
-              <StoryInput onSubmit={handleGenerate} isLoading={isLoading} />
-             </>
+             isLoading ? (
+               <ScriptSkeleton />
+             ) : (
+               <>
+                <div className="pt-8 pb-4 text-center">
+                   <h1 className="text-3xl font-black text-mn-navy dark:text-mn-offwhite mb-2 uppercase tracking-tight">Create New Story</h1>
+                   <p className="text-gray-500 dark:text-mn-offwhite/70 font-medium">Describe your idea, and AI will write and draw it.</p>
+                </div>
+                <StoryInput onSubmit={handleGenerate} isLoading={isLoading} />
+               </>
+             )
           ) : (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               

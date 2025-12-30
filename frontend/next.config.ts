@@ -18,7 +18,7 @@ const nextConfig: NextConfig = {
         hostname: "via.placeholder.com",
       },
     ],
-    ],
+
   },
   async rewrites() {
     return [

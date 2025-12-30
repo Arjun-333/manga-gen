@@ -67,3 +67,38 @@ class ProjectSummary(BaseModel):
     updated_at: str
     thumbnail_url: Optional[str] = None
     panel_count: int = 0
+
+# --- Forum Models ---
+class ForumComment(BaseModel):
+    id: str
+    post_id: str
+    content: str
+    author: str
+    created_at: str
+
+class ForumPost(BaseModel):
+    id: str
+    title: str
+    content: str
+    author: str
+    created_at: str
+    likes: int = 0
+    comments: List[ForumComment] = []
+    attached_project_id: Optional[str] = None
+
+class CreatePostRequest(BaseModel):
+    title: str
+    content: str
+    author: str 
+    attached_project_id: Optional[str] = None
+
+class CreateCommentRequest(BaseModel):
+    content: str
+    author: str
+
+class ReferenceSheetRequest(BaseModel):
+    character_name: str
+    character_description: str
+    art_style: str = "manga"
+    features: List[str] = []
+

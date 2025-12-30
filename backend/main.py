@@ -1,9 +1,10 @@
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from models import StoryRequest, ScriptResponse, CharacterSheetResponse, EnhanceRequest, EnhanceResponse, ImageRequest, ImageResponse, Project, ProjectSummary
+from models import StoryRequest, ScriptResponse, CharacterSheetResponse, EnhanceRequest, EnhanceResponse, ImageRequest, ImageResponse, Project, ProjectSummary, CreatePostRequest, CreateCommentRequest, ForumPost, ForumComment, ReferenceSheetRequest
 from services import script_generator
 from library import ProjectManager
+from forum import ForumManager
 from google.api_core.exceptions import ResourceExhausted
 from dotenv import load_dotenv
 import os
@@ -19,6 +20,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Initialize Library
 library = ProjectManager()
+forum = ForumManager()
 
 # Configure CORS
 app.add_middleware(
@@ -111,6 +113,56 @@ async def generate_image(request: ImageRequest, authorization: str = Header(None
         )
     except ResourceExhausted as e:
         raise HTTPException(status_code=429, detail=f"Quota Exceeded: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- Forum Endpoints ---
+
+@app.get("/forum/posts", response_model=List[ForumPost])
+async def get_posts():
+    return forum.get_posts()
+
+@app.post("/forum/posts", response_model=ForumPost)
+async def create_post(request: CreatePostRequest):
+    return forum.create_post(request)
+
+@app.get("/forum/posts/{post_id}", response_model=ForumPost)
+async def get_post(post_id: str):
+    post = forum.get_post(post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    return post
+
+@app.post("/forum/posts/{post_id}/comments", response_model=ForumComment)
+async def add_comment(post_id: str, request: CreateCommentRequest):
+    comment = forum.add_comment(post_id, request.content, request.author)
+    if not comment:
+        raise HTTPException(status_code=404, detail="Post not found")
+    return comment
+
+# --- Character Reference Sheet ---
+
+@app.post("/generate/character-sheet", response_model=ImageResponse)
+async def generate_character_sheet(request: ReferenceSheetRequest, authorization: str = Header(None), x_gemini_api_key: str = Header(None)):
+    final_key = x_gemini_api_key
+    if not final_key and authorization and authorization.startswith("Bearer "):
+        final_key = authorization.replace("Bearer ", "")
+        
+    if not final_key:
+        raise HTTPException(status_code=401, detail="API Key required")
+        
+    try:
+        # Use a consistent panel ID for character sheets, or random
+        import random
+        panel_id = random.randint(10000, 99999) 
+        
+        return await script_generator.generate_character_sheet(
+            request.character_name,
+            request.character_description,
+            request.art_style,
+            final_key,
+            request.features
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

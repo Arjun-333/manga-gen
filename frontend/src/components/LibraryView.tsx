@@ -4,6 +4,7 @@ import { FiClock, FiGrid, FiArrowRight, FiDownload, FiFileText } from 'react-ico
 import Image from "next/image";
 import jsPDF from "jspdf";
 import { API_BASE_URL } from "../config";
+import { ProjectCardSkeleton } from "./Skeletons";
 
 interface ProjectSummary {
   id: string;
@@ -21,9 +22,10 @@ interface ProjectData {
 
 interface LibraryViewProps {
   onLoadProject: (id: string) => void;
+  onPostToForum: (projectId: string) => void;
 }
 
-export default function LibraryView({ onLoadProject }: LibraryViewProps) {
+export default function LibraryView({ onLoadProject, onPostToForum }: LibraryViewProps) {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [exportingId, setExportingId] = useState<string | null>(null);
@@ -34,13 +36,23 @@ export default function LibraryView({ onLoadProject }: LibraryViewProps) {
 
     const fetchProjects = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/projects`);
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timed out')), 5000)
+      );
+
+      const res = await Promise.race([
+        fetch(`${API_BASE_URL}/projects`),
+        timeoutPromise
+      ]) as Response;
+
       if (res.ok) {
         const data = await res.json();
         setProjects(data);
       }
     } catch (err) {
       console.error("Failed to load projects", err);
+      // Optional: Set an error state to show a specific message
     } finally {
       setIsLoading(false);
     }
@@ -132,10 +144,21 @@ export default function LibraryView({ onLoadProject }: LibraryViewProps) {
     });
   };
 
+  /* Loading State */
   if (isLoading) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+      <div className="max-w-6xl mx-auto pt-10 px-6 pb-20">
+         <div className="flex items-center justify-between mb-10">
+            <div>
+               <h2 className="text-3xl font-black text-gray-900 dark:text-mn-offwhite tracking-tight uppercase">Library</h2>
+               <div className="h-4 bg-gray-200 dark:bg-mn-navy/50 rounded w-48 mt-2 animate-pulse" />
+            </div>
+         </div>
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+               <ProjectCardSkeleton key={i} />
+            ))}
+         </div>
       </div>
     );
   }
@@ -144,18 +167,18 @@ export default function LibraryView({ onLoadProject }: LibraryViewProps) {
     <div className="max-w-6xl mx-auto pt-10 px-6 pb-20">
       <div className="flex items-center justify-between mb-10">
         <div>
-           <h2 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Library</h2>
-           <p className="text-gray-500 dark:text-gray-400 mt-1">Manage your saved stories and exports</p>
+           <h2 className="text-3xl font-black text-gray-900 dark:text-mn-offwhite tracking-tight uppercase">Library</h2>
+           <p className="text-gray-500 dark:text-mn-offwhite/60 mt-1 font-medium">Manage your saved stories and exports</p>
         </div>
       </div>
 
       {projects.length === 0 ? (
-        <div className="text-center py-24 bg-zinc-50 dark:bg-zinc-950/50 rounded-3xl border border-dashed border-zinc-200 dark:border-zinc-800">
-          <div className="w-20 h-20 bg-white dark:bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-6 text-gray-300 dark:text-zinc-700 shadow-sm">
+        <div className="text-center py-24 bg-white dark:bg-mn-blue rounded-3xl border-2 border-dashed border-gray-200 dark:border-mn-teal/20">
+          <div className="w-20 h-20 bg-gray-50 dark:bg-mn-navy rounded-full flex items-center justify-center mx-auto mb-6 text-gray-300 dark:text-mn-teal/50 shadow-sm">
             <FiGrid size={32} />
           </div>
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Your library is empty</h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-sm mx-auto">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-mn-offwhite mb-2">Your library is empty</h3>
+          <p className="text-gray-500 dark:text-mn-offwhite/60 mb-8 max-w-sm mx-auto">
              Start your creative journey by generating your first manga chapter.
           </p>
         </div>
@@ -167,11 +190,11 @@ export default function LibraryView({ onLoadProject }: LibraryViewProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="group bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer flex flex-col"
+              className="group bg-white dark:bg-mn-blue border border-gray-200 dark:border-mn-teal/20 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer flex flex-col"
               onClick={() => onLoadProject(project.id)}
             >
               {/* Thumbnail Area */}
-              <div className="aspect-[3/4] bg-gray-100 dark:bg-zinc-950 relative overflow-hidden">
+              <div className="aspect-[3/4] bg-gray-100 dark:bg-mn-navy relative overflow-hidden">
                 {project.thumbnail_url ? (
                   <Image 
                     src={project.thumbnail_url} 
@@ -181,14 +204,14 @@ export default function LibraryView({ onLoadProject }: LibraryViewProps) {
                     unoptimized
                   />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-gray-300 dark:text-zinc-800">
+                  <div className="absolute inset-0 flex items-center justify-center text-gray-300 dark:text-mn-teal/20">
                      <FiGrid size={40} />
                   </div>
                 )}
                 
                 {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
-                   <span className="bg-white text-black px-4 py-2 rounded-full font-bold text-sm transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                <div className="absolute inset-0 bg-mn-navy/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 backdrop-blur-[2px]">
+                   <span className="bg-mn-offwhite text-mn-navy px-5 py-2 rounded-full font-bold text-sm transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 shadow-lg">
                       Open Editor
                    </span>
                 </div>
@@ -196,32 +219,32 @@ export default function LibraryView({ onLoadProject }: LibraryViewProps) {
 
               {/* Info Area */}
               <div className="p-5 flex-1 flex flex-col">
-                <h3 className="font-bold text-gray-900 dark:text-white truncate mb-1 text-lg">{project.title}</h3>
-                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-4">
+                <h3 className="font-bold text-gray-900 dark:text-mn-offwhite truncate mb-1 text-lg">{project.title}</h3>
+                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-mn-offwhite/60 mb-4 font-medium">
                   <FiClock size={12} /> 
                   <span>Updated {formatDate(project.updated_at)}</span>
                 </div>
                 
-                <div className="mt-auto pt-4 border-t border-gray-100 dark:border-zinc-800 flex justify-between items-center">
-                   <button 
-                      className="text-xs font-semibold text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
-                      onClick={(e) => { e.stopPropagation(); onLoadProject(project.id); }}
+                <div className="mt-auto pt-4 border-t border-gray-100 dark:border-mn-navy/20 flex justify-between items-center gap-2">
+                   {/* Share Button */}
+                   <button
+                        onClick={(e) => { e.stopPropagation(); onPostToForum(project.id); }}
+                        className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold text-mn-offwhite bg-mn-teal hover:bg-mn-teal/90 py-2 rounded-lg transition-colors uppercase tracking-wide"
                    >
-                      Edit
+                        Share
                    </button>
-                   
+
+                   {/* PDF Button */}
                    <button 
                       onClick={(e) => handleExportPDF(e, project.id, project.title)}
                       disabled={exportingId === project.id}
-                      className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50"
+                      className="p-2 text-mn-teal bg-mn-teal/10 hover:bg-mn-teal/20 rounded-lg transition-colors disabled:opacity-50"
+                      title="Export PDF"
                    >
                       {exportingId === project.id ? (
-                        <>Loading...</>
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent animate-spin" />
                       ) : (
-                        <>
-                           <FiDownload size={14} />
-                           PDF
-                        </>
+                        <FiDownload size={16} />
                       )}
                    </button>
                 </div>

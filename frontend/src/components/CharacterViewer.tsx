@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Users, Edit2, Check, X } from "lucide-react";
+import { Users, Edit2, Check, X, Image as ImageIcon } from "lucide-react";
+import { API_BASE_URL } from "../config";
+import axios from "axios";
 
 interface Character {
   name: string;
@@ -21,6 +23,7 @@ interface CharacterViewerProps {
 export default function CharacterViewer({ characterSheet, onUpdateCharacters }: CharacterViewerProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editedCharacter, setEditedCharacter] = useState<Character | null>(null);
+  const [generating, setGenerating] = useState<string | null>(null);
 
   const handleEdit = (index: number) => {
     setEditingIndex(index);
@@ -41,6 +44,32 @@ export default function CharacterViewer({ characterSheet, onUpdateCharacters }: 
     setEditingIndex(null);
     setEditedCharacter(null);
   };
+
+  const handleGenerateSheet = async (char: Character) => {
+      setGenerating(char.name);
+      try {
+          const response = await axios.post(`${API_BASE_URL}/generate/character-sheet`, {
+              character_name: char.name,
+              character_description: `${char.description} ${char.appearance}`,
+              art_style: "manga",
+              features: ["front view", "side view", "expression sheet"] 
+          }, {
+            headers: {
+                "x-gemini-api-key": localStorage.getItem("gemini_api_key") || ""
+            }
+          });
+          
+          if (response.data.image_url) {
+              window.open(response.data.image_url, '_blank');
+          }
+      } catch (error) {
+          console.error("Failed to generate sheet", error);
+          alert("Failed to generate character sheet");
+      } finally {
+          setGenerating(null);
+      }
+  };
+
 
   return (
     <motion.div 
@@ -89,29 +118,45 @@ export default function CharacterViewer({ characterSheet, onUpdateCharacters }: 
                   )}
                 </div>
                 
-                {!isEditing ? (
-                  <button
-                    onClick={() => handleEdit(index)}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                  >
-                    <Edit2 className="w-4 h-4 text-gray-400" />
-                  </button>
-                ) : (
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => handleSave(index)}
-                      className="p-2 hover:bg-green-100 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                    >
-                      <Check className="w-4 h-4 text-green-600" />
-                    </button>
-                    <button
-                      onClick={handleCancel}
-                      className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                    >
-                      <X className="w-4 h-4 text-red-600" />
-                    </button>
+                    {!isEditing ? (
+                      <>
+                        <button
+                          onClick={() => handleGenerateSheet(char)}
+                          disabled={generating === char.name}
+                          className="p-2 hover:bg-purple-100 dark:hover:bg-purple-900/20 rounded-lg transition-colors group"
+                          title="Generate Reference Sheet"
+                        >
+                          {generating === char.name ? (
+                             <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                             <ImageIcon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleEdit(index)}
+                          className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4 text-gray-400" />
+                        </button>
+                      </>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSave(index)}
+                          className="p-2 hover:bg-green-100 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                        >
+                          <Check className="w-4 h-4 text-green-600" />
+                        </button>
+                        <button
+                          onClick={handleCancel}
+                          className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        >
+                          <X className="w-4 h-4 text-red-600" />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                )}
               </div>
               
               <div className="space-y-4 text-sm">
