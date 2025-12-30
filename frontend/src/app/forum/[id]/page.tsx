@@ -37,6 +37,10 @@ export default function PostDetailPage() {
 
   useEffect(() => {
     fetchPost();
+    const savedName = localStorage.getItem("manga_user_name");
+    if (savedName) {
+        setCommentAuthor(savedName);
+    }
   }, [postId]);
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
@@ -137,15 +141,6 @@ export default function PostDetailPage() {
         </div>
 
         <form onSubmit={handleCommentSubmit} className="space-y-4">
-          <div>
-              <input
-                type="text"
-                value={commentAuthor}
-                onChange={(e) => setCommentAuthor(e.target.value)}
-                placeholder="Display Name"
-                className="w-full md:w-1/3 bg-white dark:bg-mn-blue border border-gray-200 dark:border-mn-navy rounded-lg p-2 dark:text-mn-offwhite text-sm focus:outline-none focus:border-mn-teal mb-2 font-medium"
-                required
-              />
               <div className="flex gap-2">
                 <input
                     type="text"
@@ -163,7 +158,6 @@ export default function PostDetailPage() {
                     <Send className="w-4 h-4" />
                 </button>
               </div>
-          </div>
         </form>
       </div>
     </div>
